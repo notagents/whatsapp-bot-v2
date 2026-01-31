@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, MESSAGES_COLLECTION } from "@/lib/db";
 import type { Message } from "@/lib/models";
-import { buildConversationId, normalizeUserID } from "@/lib/conversation";
+import { buildConversationId } from "@/lib/conversation";
 
 type BaileysKey = {
   remoteJid?: string;
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
         (item as { messageTimestamp?: number }).messageTimestamp ??
         Math.floor(Date.now() / 1000);
       const whatsappId = buildConversationId(sessionId, remoteJid);
-      const userID = normalizeUserID(remoteJid);
+      const userID = remoteJid;
       toInsert.push({
         whatsappId,
         sessionId,

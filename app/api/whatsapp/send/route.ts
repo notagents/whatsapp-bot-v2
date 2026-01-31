@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, MESSAGES_COLLECTION } from "@/lib/db";
 import type { Message } from "@/lib/models";
-import { buildConversationId, getActualJid, getSessionIdFromComposite, normalizeUserID } from "@/lib/conversation";
+import { buildConversationId, getActualJid, getSessionIdFromComposite } from "@/lib/conversation";
 
 const sendSchema = z.object({
   sessionId: z.string().min(1).default("default"),
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       botMessageId = data.messageId;
     }
 
-    const userID = normalizeUserID(whatsappId);
+    const userID = getActualJid(whatsappId);
     const doc: Message = {
       whatsappId,
       sessionId,

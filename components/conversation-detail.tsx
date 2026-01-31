@@ -45,14 +45,20 @@ export function ConversationDetail({ whatsappId }: Props) {
   });
 
   useEffect(() => {
-    fetch(`/api/conversations/${encodeURIComponent(whatsappId)}/messages`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Error al cargar mensajes");
-        return res.json();
-      })
-      .then(setMessages)
-      .catch(() => setMessages([]))
-      .finally(() => setLoadingMessages(false));
+    const url = `/api/conversations/${encodeURIComponent(whatsappId)}/messages`;
+    const load = () => {
+      fetch(url)
+        .then((res) => {
+          if (!res.ok) throw new Error("Error al cargar mensajes");
+          return res.json();
+        })
+        .then(setMessages)
+        .catch(() => setMessages([]))
+        .finally(() => setLoadingMessages(false));
+    };
+    load();
+    const interval = setInterval(load, 5000);
+    return () => clearInterval(interval);
   }, [whatsappId]);
 
   useEffect(() => {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getDb, RESPONSES_ENABLED_COLLECTION } from "@/lib/db";
 import type { ResponsesEnabled } from "@/lib/models";
-import { normalizeUserID } from "@/lib/conversation";
+import { getActualJid, getSessionIdFromComposite } from "@/lib/conversation";
 
 const postSchema = z.object({
   enabled: z.boolean(),
@@ -46,14 +46,15 @@ export async function POST(
     const { enabled, disabledUntilUTC } = parsed.data;
     const db = await getDb();
     const col = db.collection<ResponsesEnabled>(RESPONSES_ENABLED_COLLECTION);
-    const userID = normalizeUserID(whatsappId);
+    const sessionId = getSessionIdFromComposite(whatsappId) ?? "default";
+    const userID = getActualJid(whatsappId);
     const now = Date.now();
     await col.updateOne(
       { whatsappId },
       {
         $set: {
           whatsappId,
-          sessionId: "default",
+          sessionId,
           userID,
           enabled,
           updatedAt: now,

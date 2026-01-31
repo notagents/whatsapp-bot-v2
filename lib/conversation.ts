@@ -13,6 +13,8 @@ export function buildConversationId(sessionId: string, jid: string): string {
 }
 
 export function normalizeUserID(jid: string): string {
+  const rawNumberMatch = jid.match(/^(\d+)@/);
+  if (rawNumberMatch) return rawNumberMatch[1];
   const actual = getActualJid(jid);
   const match = actual.match(/^(\d+)@/);
   return match ? match[1] : actual.replace(/@.*$/, "");
