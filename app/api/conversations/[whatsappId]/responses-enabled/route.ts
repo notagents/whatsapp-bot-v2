@@ -6,7 +6,7 @@ import { getActualJid, getSessionIdFromComposite } from "@/lib/conversation";
 
 const postSchema = z.object({
   enabled: z.boolean(),
-  disabledUntilUTC: z.string().optional(),
+  disabledUntilUTC: z.string().nullable().optional(),
 });
 
 export async function GET(
@@ -49,21 +49,32 @@ export async function POST(
     const sessionId = getSessionIdFromComposite(whatsappId) ?? "default";
     const userID = getActualJid(whatsappId);
     const now = Date.now();
-    await col.updateOne(
-      { whatsappId },
-      {
-        $set: {
-          whatsappId,
-          sessionId,
-          userID,
-          enabled,
-          updatedAt: now,
-          ...(disabledUntilUTC !== undefined && { disabledUntilUTC }),
-        },
-      },
-      { upsert: true }
-    );
-    return NextResponse.json({ ok: true, enabled, disabledUntilUTC: disabledUntilUTC ?? null });
+    const setPayload: Record<string, unknown> = {
+      whatsappId,
+      sessionId,
+      userID,
+      enabled,
+      updatedAt: now,
+    };
+    if (disabledUntilUTC !== undefined && disabledUntilUTC !== null) {
+      setPayload.disabledUntilUTC = disabledUntilUTC;
+    }
+    const clearCooldown = enabled === true || disabledUntilUTC === null;
+    if (clearCooldown) {
+      await col.updateOne(
+        { whatsappId },
+        { $set: setPayload, $unset: { disabledUntilUTC: 1 } },
+        { upsert: true }
+      );
+    } else {
+      await col.updateOne({ whatsappId }, { $set: setPayload }, { upsert: true });
+    }
+    const doc = await col.findOne({ whatsappId });
+    return NextResponse.json({
+      ok: true,
+      enabled,
+      disabledUntilUTC: doc?.disabledUntilUTC ?? null,
+    });
   } catch (err) {
     console.error("[responses-enabled POST]", err);
     return NextResponse.json(

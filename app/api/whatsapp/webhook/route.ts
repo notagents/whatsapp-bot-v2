@@ -64,6 +64,8 @@ export async function POST(request: NextRequest) {
     const toInsert: Message[] = [];
 
     const COOLDOWN_HOURS = 2;
+    const db = await getDb();
+    const messagesCol = db.collection<Message>(MESSAGES_COLLECTION);
 
     for (const item of messages) {
       const key = item.key;
@@ -76,10 +78,37 @@ export async function POST(request: NextRequest) {
       if (!remoteJid) continue;
       if (fromMe === true) {
         const whatsappId = buildConversationId(sessionId, remoteJid);
-        const disabledUntilUTC = new Date(
-          Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000
-        ).toISOString();
-        await updateResponsesEnabled(whatsappId, { disabledUntilUTC });
+        const messageIdFromBaileys = key?.id ?? (item as { key?: { id?: string } }).key?.id;
+        let isFromBot = false;
+        if (typeof messageIdFromBaileys === "string" && messageIdFromBaileys.length > 0) {
+          isFromBot = !!(await messagesCol.findOne({
+            whatsappId,
+            source: "bot",
+            botMessageId: messageIdFromBaileys,
+          }));
+        }
+        if (!isFromBot) {
+          const textFromMe = extractText(item.message, item.messageBody).trim();
+          if (textFromMe.length > 0) {
+            const sinceSec = Math.floor(Date.now() / 1000) - 90;
+            const recentBot = await messagesCol
+              .find({ whatsappId, source: "bot", messageTime: { $gte: sinceSec } })
+              .limit(20)
+              .toArray();
+            isFromBot = recentBot.some(
+              (m) =>
+                m.messageText.trim() === textFromMe ||
+                textFromMe.includes(m.messageText.trim()) ||
+                m.messageText.trim().includes(textFromMe)
+            );
+          }
+        }
+        if (!isFromBot) {
+          const disabledUntilUTC = new Date(
+            Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000
+          ).toISOString();
+          await updateResponsesEnabled(whatsappId, { disabledUntilUTC });
+        }
         continue;
       }
       const text = extractText(item.message, item.messageBody);
@@ -106,9 +135,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true, saved: 0 });
     }
 
-    const db = await getDb();
-    const col = db.collection<Message>(MESSAGES_COLLECTION);
-    await col.insertMany(toInsert);
+    await messagesCol.insertMany(toInsert);
     const uniqueWhatsappIds = [...new Set(toInsert.map((m) => m.whatsappId))];
     for (const whatsappId of uniqueWhatsappIds) {
       await enqueueJob({ type: "debounceTurn", payload: { whatsappId } });

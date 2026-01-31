@@ -99,14 +99,20 @@ export function createToolSet(whatsappId: string, sessionId: string): ToolSet {
         case "http_fetch": {
           const url = String(a?.url ?? "");
           if (!url.startsWith("https://") && !url.startsWith("http://localhost")) {
-            throw new Error("URL not allowed");
+            return { error: true, message: "URL not allowed" };
           }
-          const res = await fetch(url, {
-            method: (a?.method as string) || "GET",
-            body: a?.body ? String(a.body) : undefined,
-          });
-          const text = await res.text();
-          return { status: res.status, body: text };
+          try {
+            const res = await fetch(url, {
+              method: (a?.method as string) || "GET",
+              body: a?.body ? String(a.body) : undefined,
+              signal: AbortSignal.timeout(15000),
+            });
+            const text = await res.text();
+            return { status: res.status, body: text };
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            return { error: true, message: `fetch failed: ${message}` };
+          }
         }
         default:
           throw new Error(`Unknown tool: ${name}`);

@@ -212,6 +212,7 @@ async function processRunAgentImpl(job: Job): Promise<void> {
     status: { $in: ["done", "running"] },
   });
   if (recentCount > RATE_LIMIT_TURNS_PER_MINUTE) {
+    console.warn("[runAgent] Blocked: rate_limit", { whatsappId: turn.whatsappId, recentCount });
     await db.collection<Turn>(TURNS_COLLECTION).updateOne(
       { _id: turnId },
       { $set: { status: "blocked" as const, "response.blockedReason": "rate_limit" } }
@@ -221,6 +222,7 @@ async function processRunAgentImpl(job: Job): Promise<void> {
   const { getResponsesEnabled } = await import("@/lib/conversation-state");
   const responseConfig = await getResponsesEnabled(turn.whatsappId);
   if (!responseConfig.enabled) {
+    console.warn("[runAgent] Blocked: responses_disabled", { whatsappId: turn.whatsappId });
     await db.collection<Turn>(TURNS_COLLECTION).updateOne(
       { _id: turnId },
       { $set: { status: "blocked" as const, "response.blockedReason": "responses_disabled" } }
@@ -230,6 +232,10 @@ async function processRunAgentImpl(job: Job): Promise<void> {
   if (responseConfig.disabledUntilUTC) {
     const until = new Date(responseConfig.disabledUntilUTC);
     if (until > new Date()) {
+      console.warn("[runAgent] Blocked: cooldown_active", {
+        whatsappId: turn.whatsappId,
+        disabledUntilUTC: responseConfig.disabledUntilUTC,
+      });
       await db.collection<Turn>(TURNS_COLLECTION).updateOne(
         { _id: turnId },
         { $set: { status: "blocked" as const, "response.blockedReason": "cooldown_active" } }
@@ -291,6 +297,11 @@ async function processSendReplyImpl(job: Job): Promise<void> {
   }
   const responseConfig = await getResponsesEnabled(turn.whatsappId);
   if (!responseConfig.enabled || isInCooldown(responseConfig)) {
+    console.warn("[sendReply] Skipped: responses disabled or cooldown", {
+      whatsappId: turn.whatsappId,
+      enabled: responseConfig.enabled,
+      disabledUntilUTC: responseConfig.disabledUntilUTC,
+    });
     await db.collection<Turn>(TURNS_COLLECTION).updateOne(
       { _id: turn._id },
       { $set: { "response.blockedReason": "responses_disabled_on_send" } }
