@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, MESSAGES_COLLECTION } from "@/lib/db";
 import type { Message } from "@/lib/models";
 import { buildConversationId } from "@/lib/conversation";
+import { enqueueJob } from "@/lib/jobs";
+import { updateResponsesEnabled } from "@/lib/conversation-state";
 
 type BaileysKey = {
   remoteJid?: string;
@@ -61,6 +63,8 @@ export async function POST(request: NextRequest) {
     );
     const toInsert: Message[] = [];
 
+    const COOLDOWN_HOURS = 2;
+
     for (const item of messages) {
       const key = item.key;
       const remoteJid =
@@ -69,7 +73,15 @@ export async function POST(request: NextRequest) {
         (item as { key?: { remoteJid?: string } }).key?.remoteJid;
       const fromMe =
         key?.fromMe ?? (item as { fromMe?: boolean }).fromMe ?? false;
-      if (!remoteJid || fromMe === true) continue;
+      if (!remoteJid) continue;
+      if (fromMe === true) {
+        const whatsappId = buildConversationId(sessionId, remoteJid);
+        const disabledUntilUTC = new Date(
+          Date.now() + COOLDOWN_HOURS * 60 * 60 * 1000
+        ).toISOString();
+        await updateResponsesEnabled(whatsappId, { disabledUntilUTC });
+        continue;
+      }
       const text = extractText(item.message, item.messageBody);
       const messageTime =
         item.messageTimestamp ??
@@ -97,6 +109,10 @@ export async function POST(request: NextRequest) {
     const db = await getDb();
     const col = db.collection<Message>(MESSAGES_COLLECTION);
     await col.insertMany(toInsert);
+    const uniqueWhatsappIds = [...new Set(toInsert.map((m) => m.whatsappId))];
+    for (const whatsappId of uniqueWhatsappIds) {
+      await enqueueJob({ type: "debounceTurn", payload: { whatsappId } });
+    }
     return NextResponse.json({ ok: true, saved: toInsert.length });
   } catch (err) {
     console.error("[webhook]", err);

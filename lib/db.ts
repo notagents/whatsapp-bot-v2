@@ -19,3 +19,9 @@ export async function getDb(): Promise<Db> {
 
 export const MESSAGES_COLLECTION = "messages";
 export const RESPONSES_ENABLED_COLLECTION = "responsesEnabled";
+export const TURNS_COLLECTION = "turns";
+export const AGENT_RUNS_COLLECTION = "agent_runs";
+export const MEMORY_COLLECTION = "memory";
+export const JOBS_COLLECTION = "jobs";
+export const CONVERSATION_STATE_COLLECTION = "conversation_state";
+export const LOCKS_COLLECTION = "locks";
