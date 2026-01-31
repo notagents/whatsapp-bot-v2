@@ -1,0 +1,11 @@
+{
+  "mode": "simple",
+  "agent": "default_assistant",
+  "kb": {
+    "enabled": true,
+    "topK": 4
+  },
+  "humanMode": {
+    "respectCooldown": true
+  }
+}

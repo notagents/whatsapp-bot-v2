@@ -244,38 +244,72 @@ async function processRunAgentImpl(job: Job): Promise<void> {
     }
   }
   const { buildContext } = await import("@/lib/context");
-  const { routeToAgent } = await import("@/lib/router");
-  const { getAgent, executeAgentRun } = await import("@/lib/agents/runner");
+  const { resolveFlow } = await import("@/lib/flows/registry");
+  const { executeFlow } = await import("@/lib/flows/runtime");
   const context = await buildContext(turn.whatsappId);
-  const routerResult = await routeToAgent(turn.text, context);
-  await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-    { _id: turnId },
-    { $set: { router: routerResult } }
-  );
-  const agent = getAgent(routerResult.agentId);
-  const agentRun = await executeAgentRun({
-    turnId,
-    agentId: routerResult.agentId,
+  const resolvedFlow = await resolveFlow(turn.sessionId);
+  const flowResult = await executeFlow({
+    sessionId: turn.sessionId,
     turn,
     context,
-    agent,
-  });
-  if (agentRun.output?.assistantText) {
-    await enqueueJob({
-      type: "sendReply",
-      payload: { turnId: turnId.toString(), agentRunId: agentRun._id!.toString() },
-      scheduledFor: Date.now(),
-    });
-  }
-  await enqueueJob({
-    type: "memoryUpdate",
-    payload: { turnId: turnId.toString(), agentRunId: agentRun._id!.toString() },
-    scheduledFor: Date.now() + 5000,
+    resolvedFlow,
   });
   await db.collection<Turn>(TURNS_COLLECTION).updateOne(
     { _id: turnId },
-    { $set: { status: "done" as const } }
+    {
+      $set: {
+        "meta.flow": {
+          mode: flowResult.meta.mode,
+          flowPath: flowResult.meta.flowPath,
+          ...(flowResult.meta.state && { state: flowResult.meta.state }),
+          ...(flowResult.meta.kbUsed !== undefined && { kbUsed: flowResult.meta.kbUsed }),
+          ...(flowResult.meta.kbChunks !== undefined && { kbChunks: flowResult.meta.kbChunks }),
+        },
+        status: "done" as const,
+      },
+    }
   );
+  let agentRunId: ObjectId;
+  if (flowResult.agentRun?._id) {
+    agentRunId = flowResult.agentRun._id;
+  } else if (flowResult.assistantText) {
+    const syntheticRun: Omit<AgentRun, "_id"> = {
+      turnId,
+      whatsappId: turn.whatsappId,
+      agentId: "flow_reply",
+      startedAt: Date.now(),
+      endedAt: Date.now(),
+      status: "success",
+      input: {
+        systemPromptVersion: "flow",
+        messages: [],
+        context: {
+          recentMessages: context.recentMessages,
+          memory: context.memory,
+          state: context.state,
+        },
+      },
+      output: { assistantText: flowResult.assistantText },
+    };
+    const insertResult = await db
+      .collection<AgentRun>(AGENT_RUNS_COLLECTION)
+      .insertOne(syntheticRun as AgentRun);
+    agentRunId = insertResult.insertedId!;
+  } else {
+    return;
+  }
+  if (flowResult.assistantText) {
+    await enqueueJob({
+      type: "sendReply",
+      payload: { turnId: turnId.toString(), agentRunId: agentRunId.toString() },
+      scheduledFor: Date.now(),
+    });
+    await enqueueJob({
+      type: "memoryUpdate",
+      payload: { turnId: turnId.toString(), agentRunId: agentRunId.toString() },
+      scheduledFor: Date.now() + 5000,
+    });
+  }
 }
 
 async function processSendReplyImpl(job: Job): Promise<void> {

@@ -1,5 +1,5 @@
-import { getDb, RESPONSES_ENABLED_COLLECTION } from "./db";
-import type { ResponsesEnabled } from "./models";
+import { getDb, RESPONSES_ENABLED_COLLECTION, CONVERSATION_STATE_COLLECTION } from "./db";
+import type { ResponsesEnabled, ConversationStateDoc } from "./models";
 import { getSessionIdFromComposite, getActualJid } from "./conversation";
 
 export type ResponsesEnabledResult = {
@@ -42,6 +42,26 @@ export async function updateResponsesEnabled(
         ...(options.disabledUntilUTC !== undefined && { disabledUntilUTC: options.disabledUntilUTC }),
       },
     },
+    { upsert: true }
+  );
+}
+
+export async function getConversationState(whatsappId: string): Promise<ConversationStateDoc | null> {
+  const db = await getDb();
+  const col = db.collection<ConversationStateDoc>(CONVERSATION_STATE_COLLECTION);
+  return col.findOne({ whatsappId });
+}
+
+export async function setConversationState(
+  whatsappId: string,
+  state: Record<string, unknown>
+): Promise<void> {
+  const db = await getDb();
+  const col = db.collection<ConversationStateDoc>(CONVERSATION_STATE_COLLECTION);
+  const now = Date.now();
+  await col.updateOne(
+    { whatsappId },
+    { $set: { whatsappId, state, updatedAt: now } },
     { upsert: true }
   );
 }

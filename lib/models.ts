@@ -48,6 +48,14 @@ export type TurnResponse = {
   blockedReason?: string;
 };
 
+export type TurnMetaFlow = {
+  mode: "simple" | "fsm";
+  flowPath: string;
+  state?: string;
+  kbUsed?: boolean;
+  kbChunks?: number;
+};
+
 export type Turn = {
   _id?: ObjectId;
   whatsappId: string;
@@ -59,7 +67,7 @@ export type Turn = {
   status: TurnStatus;
   router?: TurnRouter;
   response?: TurnResponse;
-  meta?: { rawEventIds?: string[] };
+  meta?: { rawEventIds?: string[]; flow?: TurnMetaFlow };
 };
 
 export type AgentRunStatus = "running" | "success" | "error";

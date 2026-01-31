@@ -1,10 +1,13 @@
 import type { ObjectId } from "mongodb";
 import type { Turn, Message, Memory } from "../models";
 
+export type KBChunkRef = { text: string; source: string };
+
 export type AgentContext = {
   recentMessages: Message[];
   memory: Memory;
   state: Record<string, unknown>;
+  kbChunks?: KBChunkRef[];
 };
 
 export type ToolCall = {
