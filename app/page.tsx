@@ -1,8 +1,6 @@
 import Link from "next/link";
-import { SendMessageForm } from "@/components/send-message-form";
-import { ConversationsList } from "@/components/conversations-list";
 import { LogoutButton } from "@/components/logout-button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DashboardOverview } from "@/components/dashboard-overview";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
@@ -17,23 +15,8 @@ export default function Home() {
           <LogoutButton />
         </nav>
       </header>
-      <main className="mx-auto max-w-4xl space-y-8 px-6 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Enviar mensaje</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <SendMessageForm />
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Conversaciones</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ConversationsList />
-          </CardContent>
-        </Card>
+      <main className="mx-auto max-w-5xl space-y-8 px-6 py-8">
+        <DashboardOverview />
       </main>
     </div>
   );

@@ -17,6 +17,7 @@ import {
   FLOW_DOCUMENTS_COLLECTION,
   AGENT_PROMPT_DOCUMENTS_COLLECTION,
   SESSION_RUNTIME_CONFIG_COLLECTION,
+  SESSIONS_COLLECTION,
 } from "./db";
 import type {
   KbMdDoc,
@@ -242,6 +243,15 @@ export type SessionRuntimeConfig = {
   updatedBy: string;
 };
 
+export type Session = {
+  _id?: ObjectId;
+  sessionId: string;
+  sessionName?: string;
+  botEnabled?: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export async function ensureIndexes(): Promise<void> {
   const db = await getDb();
   const messages = db.collection<Message>(MESSAGES_COLLECTION);
@@ -311,4 +321,6 @@ export async function ensureIndexes(): Promise<void> {
     SESSION_RUNTIME_CONFIG_COLLECTION
   );
   await sessionRuntimeConfig.createIndex({ sessionId: 1 }, { unique: true });
+  const sessions = db.collection<Session>(SESSIONS_COLLECTION);
+  await sessions.createIndex({ sessionId: 1 }, { unique: true });
 }
