@@ -1,7 +1,12 @@
 import { ObjectId } from "mongodb";
 import { getDb, MESSAGES_COLLECTION } from "./db";
 import type { Message } from "./models";
-import { getActualJid } from "./conversation";
+import {
+  getActualJid,
+  isSimulatorConversation,
+  parseSimulatorConversationId,
+  buildConversationId,
+} from "./conversation";
 
 export type SendWhatsAppMessageParams = {
   sessionId: string;
@@ -30,6 +35,27 @@ export async function sendWhatsAppMessage(
   persist = true
 ): Promise<SendWhatsAppMessageResult> {
   const { sessionId, jid, text, whatsappId: paramWhatsappId } = params;
+  const whatsappId =
+    paramWhatsappId ?? buildConversationId(sessionId, jid.includes("@") ? jid : `${sessionId}@${jid}`);
+
+  if (isSimulatorConversation(whatsappId)) {
+    if (!persist) return {};
+    const parsed = parseSimulatorConversationId(whatsappId);
+    const doc: Message = {
+      whatsappId,
+      sessionId: parsed?.sessionId ?? sessionId,
+      userID: parsed?.testUserId ?? jid,
+      channel: "simulator",
+      messageText: text,
+      messageTime: Math.floor(Date.now() / 1000),
+      source: "bot",
+      processed: true,
+    };
+    const db = await getDb();
+    const result = await db.collection<Message>(MESSAGES_COLLECTION).insertOne(doc);
+    return { messageId: result.insertedId };
+  }
+
   const actualJid = toBaileysJid(jid.includes("@") ? jid : `${sessionId}@${jid}`, sessionId);
   const baileysUrl = process.env.BAILEYS_API_URL;
   let botMessageId: string | undefined;
@@ -61,7 +87,6 @@ export async function sendWhatsAppMessage(
     return {};
   }
 
-  const whatsappId = paramWhatsappId ?? (jid.includes("@") ? jid : `${sessionId}@${actualJid}`);
   const userID = getActualJid(whatsappId);
   const doc: Message = {
     whatsappId,

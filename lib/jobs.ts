@@ -8,7 +8,11 @@ import {
   AGENT_RUNS_COLLECTION,
 } from "./db";
 import type { Job, JobType, Turn, Message, AgentRun } from "./models";
-import { normalizeUserID } from "./conversation";
+import {
+  normalizeUserID,
+  isSimulatorConversation,
+  parseSimulatorConversationId,
+} from "./conversation";
 
 const DEBOUNCE_DELAY_MS = 3000;
 const LOCK_TTL_MS = 60000;
@@ -122,6 +126,7 @@ async function processDebounceTurn(job: Job): Promise<void> {
       whatsappId,
       sessionId: first.sessionId,
       userID: normalizeUserID(first.userID),
+      channel: first.channel,
       createdAt: Date.now(),
       messageIds: messages.map((m) => m._id!).filter(Boolean),
       text: messages.map((m) => m.messageText).join(" ").trim(),
@@ -342,6 +347,37 @@ async function processSendReplyImpl(job: Job): Promise<void> {
     );
     return;
   }
+
+  if (isSimulatorConversation(turn.whatsappId)) {
+    const parsed = parseSimulatorConversationId(turn.whatsappId);
+    const botDoc: Message = {
+      whatsappId: turn.whatsappId,
+      sessionId: parsed?.sessionId ?? turn.sessionId,
+      userID: parsed?.testUserId ?? turn.userID,
+      channel: "simulator",
+      messageText: assistantText,
+      messageTime: Math.floor(Date.now() / 1000),
+      source: "bot",
+      processed: true,
+    };
+    const insertResult = await db
+      .collection<Message>(MESSAGES_COLLECTION)
+      .insertOne(botDoc);
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turn._id },
+      {
+        $set: {
+          "response.text": assistantText,
+          "response.sentAt": Date.now(),
+          ...(insertResult.insertedId && {
+            "response.messageId": insertResult.insertedId,
+          }),
+        },
+      }
+    );
+    return;
+  }
+
   const jid = getActualJid(turn.whatsappId);
   const result = await sendWhatsAppMessage({
     sessionId: turn.sessionId,

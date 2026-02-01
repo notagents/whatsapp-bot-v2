@@ -19,3 +19,20 @@ export function normalizeUserID(jid: string): string {
   const match = actual.match(/^(\d+)@/);
   return match ? match[1] : actual.replace(/@.*$/, "");
 }
+
+export function isSimulatorConversation(whatsappId: string): boolean {
+  return whatsappId.startsWith("sim:");
+}
+
+export function buildSimulatorConversationId(sessionId: string, testUserId: string): string {
+  return `sim:${sessionId}:${testUserId}`;
+}
+
+export function parseSimulatorConversationId(
+  conversationId: string
+): { sessionId: string; testUserId: string } | null {
+  if (!conversationId.startsWith("sim:")) return null;
+  const parts = conversationId.split(":");
+  if (parts.length !== 3) return null;
+  return { sessionId: parts[1], testUserId: parts[2] };
+}

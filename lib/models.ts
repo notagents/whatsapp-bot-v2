@@ -16,7 +16,7 @@ export type Message = {
   whatsappId: string;
   sessionId: string;
   userID: string;
-  channel: "whatsapp";
+  channel: "whatsapp" | "simulator";
   messageText: string;
   messageTime: number;
   source: "user" | "bot";
@@ -61,6 +61,7 @@ export type Turn = {
   whatsappId: string;
   sessionId: string;
   userID: string;
+  channel?: "whatsapp" | "simulator";
   createdAt: number;
   messageIds: ObjectId[];
   text: string;
