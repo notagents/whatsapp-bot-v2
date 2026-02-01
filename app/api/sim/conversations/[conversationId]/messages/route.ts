@@ -57,14 +57,14 @@ export async function POST(
       );
     }
     const body = await request.json().catch(() => ({}));
-    const text =
-      typeof body?.text === "string" ? body.text.trim() : "";
+    const text = typeof body?.text === "string" ? body.text.trim() : "";
     if (!text) {
-      return NextResponse.json(
-        { error: "text required" },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "text required" }, { status: 400 });
     }
+    const configOverride =
+      body?.config === "draft" || body?.config === "published"
+        ? body.config
+        : undefined;
     const { sessionId, testUserId } = parsed;
     const db = await getDb();
     const messageDoc: Message = {
@@ -76,6 +76,7 @@ export async function POST(
       messageTime: Math.floor(Date.now() / 1000),
       source: "user",
       processed: false,
+      ...(configOverride && { configOverride }),
     };
     await db.collection<Message>(MESSAGES_COLLECTION).insertOne(messageDoc);
     await enqueueJob({

@@ -14,6 +14,9 @@ import {
   KB_TABLES_COLLECTION,
   KB_ROWS_COLLECTION,
   KB_SYNC_RUNS_COLLECTION,
+  FLOW_DOCUMENTS_COLLECTION,
+  AGENT_PROMPT_DOCUMENTS_COLLECTION,
+  SESSION_RUNTIME_CONFIG_COLLECTION,
 } from "./db";
 import type {
   KbMdDoc,
@@ -22,6 +25,7 @@ import type {
   KbRow,
   KbSyncRun,
 } from "./kb-v2/types";
+import type { FlowConfig } from "./flows/types";
 
 export type Message = {
   _id?: ObjectId;
@@ -34,6 +38,7 @@ export type Message = {
   source: "user" | "bot";
   processed: boolean;
   botMessageId?: string;
+  configOverride?: "draft" | "published";
 };
 
 export type ResponsesEnabled = {
@@ -81,6 +86,7 @@ export type Turn = {
   router?: TurnRouter;
   response?: TurnResponse;
   meta?: { rawEventIds?: string[]; flow?: TurnMetaFlow };
+  configOverride?: "draft" | "published";
 };
 
 export type AgentRunStatus = "running" | "success" | "error";
@@ -179,6 +185,63 @@ export type ConversationStateDoc = {
   updatedAt: number;
 };
 
+export type FlowDocumentStatus = "draft" | "published";
+
+export type FlowDocument = {
+  _id?: ObjectId;
+  sessionId: string;
+  type: "flow";
+  name: string;
+  status: FlowDocumentStatus;
+  format: "json";
+  text: string;
+  parsed?: FlowConfig;
+  schemaVersion: number;
+  version: number;
+  updatedAt: number;
+  updatedBy: string;
+  lastValidAt: number;
+  lastError?: { message: string; at: number };
+};
+
+export type AgentPromptDocumentStatus = "draft" | "published";
+
+export type AgentPromptToolsPolicy = {
+  allowedTools?: string[];
+  maxCallsPerRound?: number;
+};
+
+export type AgentPromptDocument = {
+  _id?: ObjectId;
+  sessionId: string;
+  agentId: string;
+  status: AgentPromptDocumentStatus;
+  format: "text";
+  systemPromptTemplate: string;
+  model: string;
+  temperature: number;
+  maxToolRounds: number;
+  toolsPolicy?: AgentPromptToolsPolicy;
+  version: number;
+  updatedAt: number;
+  updatedBy: string;
+  lastValidAt: number;
+  lastError?: { message: string; at: number };
+};
+
+export type SessionRuntimeConfigMode =
+  | "auto"
+  | "force_draft"
+  | "force_published";
+
+export type SessionRuntimeConfig = {
+  _id?: ObjectId;
+  sessionId: string;
+  configMode: SessionRuntimeConfigMode;
+  updatedAt: number;
+  updatedBy: string;
+};
+
 export async function ensureIndexes(): Promise<void> {
   const db = await getDb();
   const messages = db.collection<Message>(MESSAGES_COLLECTION);
@@ -230,4 +293,22 @@ export async function ensureIndexes(): Promise<void> {
     { unique: true }
   );
   await kbSyncRuns.createIndex({ status: 1, receivedAt: -1 });
+  const flowDocuments = db.collection<FlowDocument>(FLOW_DOCUMENTS_COLLECTION);
+  await flowDocuments.createIndex(
+    { sessionId: 1, type: 1, name: 1, status: 1 },
+    { unique: true }
+  );
+  await flowDocuments.createIndex({ sessionId: 1, status: 1 });
+  const agentPromptDocuments = db.collection<AgentPromptDocument>(
+    AGENT_PROMPT_DOCUMENTS_COLLECTION
+  );
+  await agentPromptDocuments.createIndex(
+    { sessionId: 1, agentId: 1, status: 1 },
+    { unique: true }
+  );
+  await agentPromptDocuments.createIndex({ sessionId: 1, status: 1 });
+  const sessionRuntimeConfig = db.collection<SessionRuntimeConfig>(
+    SESSION_RUNTIME_CONFIG_COLLECTION
+  );
+  await sessionRuntimeConfig.createIndex({ sessionId: 1 }, { unique: true });
 }

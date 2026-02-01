@@ -9,9 +9,10 @@ import { SimulatorDebugPanel } from "@/components/simulator-debug-panel";
 
 type Props = {
   sessionId: string;
+  configOverride?: "draft" | "published";
 };
 
-export function SimulatorSession({ sessionId }: Props) {
+export function SimulatorSession({ sessionId, configOverride }: Props) {
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [debugKey, setDebugKey] = useState(0);
 
@@ -27,6 +28,13 @@ export function SimulatorSession({ sessionId }: Props) {
     setDebugKey((k) => k + 1);
   }, []);
 
+  const configBadge =
+    configOverride === "draft"
+      ? "Using: Draft"
+      : configOverride === "published"
+      ? "Using: Published"
+      : "Using: Auto (Draft)";
+
   return (
     <div className="flex h-screen bg-background">
       <header className="absolute top-0 left-0 right-0 h-12 border-b flex items-center px-4 z-10 bg-background">
@@ -34,7 +42,23 @@ export function SimulatorSession({ sessionId }: Props) {
           <Link href="/sim">← Sim</Link>
         </Button>
         <span className="ml-2 font-mono text-sm truncate">{sessionId}</span>
+        <span
+          className={`ml-2 rounded px-2 py-0.5 text-xs font-medium ${
+            configOverride === "draft"
+              ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200"
+              : configOverride === "published"
+              ? "bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-200"
+              : "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+          }`}
+        >
+          {configBadge}
+        </span>
         <Button variant="outline" size="sm" className="ml-auto" asChild>
+          <Link href={`/ui/sessions/${encodeURIComponent(sessionId)}`}>
+            Config
+          </Link>
+        </Button>
+        <Button variant="outline" size="sm" asChild>
           <Link href={`/kb/${encodeURIComponent(sessionId)}`}>
             Gestionar KB
           </Link>
@@ -51,6 +75,7 @@ export function SimulatorSession({ sessionId }: Props) {
           sessionId={sessionId}
           conversationId={conversationId}
           onResetDone={handleResetDone}
+          configOverride={configOverride}
         />
         <SimulatorDebugPanel
           key={debugKey}

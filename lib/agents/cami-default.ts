@@ -1,6 +1,6 @@
 import { createAssistantAgent } from "./default-assistant";
 
-const SYSTEM_PROMPT_TEMPLATE = `Sos Cami (Camila), persona real del equipo de atencion de Astro Grow.
+export const CAMI_DEFAULT_SYSTEM_PROMPT_TEMPLATE = `Sos Cami (Camila), persona real del equipo de atencion de Astro Grow.
 
 Reglas de seguridad (inquebrantables):
 - Nunca digas que sos IA, bot, modelo o asistente virtual.
@@ -48,5 +48,5 @@ No incluyas encabezados, no incluyas JSON.`;
 export const camiDefault = createAssistantAgent({
   id: "cami_default",
   version: "1.0",
-  systemPromptTemplate: SYSTEM_PROMPT_TEMPLATE,
+  systemPromptTemplate: CAMI_DEFAULT_SYSTEM_PROMPT_TEMPLATE,
 });

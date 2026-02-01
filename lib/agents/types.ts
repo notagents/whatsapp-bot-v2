@@ -21,11 +21,19 @@ export type Action = {
   payload: unknown;
 };
 
+export type AgentConfigOverride = {
+  systemPromptTemplate: string;
+  model: string;
+  temperature: number;
+  maxToolRounds: number;
+};
+
 export type AgentRunParams = {
   turnId: ObjectId;
   turn: Turn;
   context: AgentContext;
   tools: ToolSet;
+  agentConfig?: AgentConfigOverride;
 };
 
 export type AgentRunResult = {

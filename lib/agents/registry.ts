@@ -18,3 +18,7 @@ export function getAgent(agentId: string): Agent {
   if (agent) return agent;
   return defaultAssistant;
 }
+
+export function getRegisteredAgentIds(): string[] {
+  return Array.from(agents.keys());
+}

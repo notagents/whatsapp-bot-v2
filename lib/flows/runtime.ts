@@ -4,7 +4,7 @@ import type { Context } from "@/lib/context";
 import type { AgentContext } from "@/lib/agents/types";
 import type { AgentRun } from "@/lib/models";
 import type { ResolvedFlow, SimpleFlowConfig } from "./types";
-import { resolveFlow } from "./registry";
+import { resolveFlow } from "./resolver";
 import { loadKB } from "@/lib/kb/loader";
 import { retrieveChunks } from "@/lib/kb/retriever";
 import { searchChunks } from "@/lib/kb-v2/md/retriever";
@@ -35,7 +35,10 @@ export async function executeFlow(
   params: ExecuteFlowParams
 ): Promise<FlowResult> {
   const { sessionId, turn, context, resolvedFlow: provided } = params;
-  const resolved = provided ?? (await resolveFlow(sessionId));
+  const channel = turn.channel ?? "whatsapp";
+  const override = turn.configOverride;
+  const resolved =
+    provided ?? (await resolveFlow(sessionId, channel, override));
   const { config, flowPath } = resolved;
 
   if (config.mode === "simple") {

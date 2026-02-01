@@ -4,7 +4,7 @@ import { TOOL_DEFINITIONS } from "./tools";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const DEFAULT_SYSTEM_PROMPT_TEMPLATE = `Eres un asistente de WhatsApp amigable y útil.
+export const DEFAULT_SYSTEM_PROMPT_TEMPLATE = `Eres un asistente de WhatsApp amigable y útil.
 
 Contexto actual:
 - Conversación con: {userID}
@@ -67,8 +67,13 @@ export function createAssistantAgent(
     version,
     systemPrompt: systemPromptTemplate,
     async run(params): Promise<AgentRunResult> {
-      const { turn, context, tools } = params;
-      const systemContent = buildSystemPrompt(context, systemPromptTemplate);
+      const { turn, context, tools, agentConfig } = params;
+      const template =
+        agentConfig?.systemPromptTemplate ?? systemPromptTemplate;
+      const model = agentConfig?.model ?? "gpt-5-mini";
+      const temperature = agentConfig?.temperature ?? 0.7;
+      const maxRounds = agentConfig?.maxToolRounds ?? 5;
+      const systemContent = buildSystemPrompt(context, template);
       const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         { role: "system", content: systemContent },
         ...buildMessages(turn, context),
@@ -76,16 +81,15 @@ export function createAssistantAgent(
       const toolCalls: ToolCall[] = [];
       let assistantText = "";
       let currentMessages = [...messages];
-      const maxRounds = 5;
       let round = 0;
 
       while (round < maxRounds) {
         const toolDefs = tools.definitions ?? TOOL_DEFINITIONS;
         const completion = await openai.chat.completions.create({
-          model: "gpt-5-mini",
+          model,
           messages: currentMessages,
           tools: toolDefs,
-          temperature: 0.7,
+          temperature,
         });
         const choice = completion.choices[0];
         if (!choice?.message) {

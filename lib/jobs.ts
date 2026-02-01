@@ -179,6 +179,7 @@ async function processDebounceTurn(job: Job): Promise<void> {
         .join(" ")
         .trim(),
       status: "queued",
+      ...(first.configOverride && { configOverride: first.configOverride }),
     };
     const db = await getDb();
     const turnResult = await db
@@ -280,17 +281,15 @@ async function processRunAgentImpl(job: Job): Promise<void> {
       whatsappId: turn.whatsappId,
       recentCount,
     });
-    await db
-      .collection<Turn>(TURNS_COLLECTION)
-      .updateOne(
-        { _id: turnId },
-        {
-          $set: {
-            status: "blocked" as const,
-            "response.blockedReason": "rate_limit",
-          },
-        }
-      );
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turnId },
+      {
+        $set: {
+          status: "blocked" as const,
+          "response.blockedReason": "rate_limit",
+        },
+      }
+    );
     return;
   }
   const { getResponsesEnabled } = await import("@/lib/conversation-state");
@@ -299,17 +298,15 @@ async function processRunAgentImpl(job: Job): Promise<void> {
     console.warn("[runAgent] Blocked: responses_disabled", {
       whatsappId: turn.whatsappId,
     });
-    await db
-      .collection<Turn>(TURNS_COLLECTION)
-      .updateOne(
-        { _id: turnId },
-        {
-          $set: {
-            status: "blocked" as const,
-            "response.blockedReason": "responses_disabled",
-          },
-        }
-      );
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turnId },
+      {
+        $set: {
+          status: "blocked" as const,
+          "response.blockedReason": "responses_disabled",
+        },
+      }
+    );
     return;
   }
   if (responseConfig.disabledUntilUTC) {
@@ -319,17 +316,15 @@ async function processRunAgentImpl(job: Job): Promise<void> {
         whatsappId: turn.whatsappId,
         disabledUntilUTC: responseConfig.disabledUntilUTC,
       });
-      await db
-        .collection<Turn>(TURNS_COLLECTION)
-        .updateOne(
-          { _id: turnId },
-          {
-            $set: {
-              status: "blocked" as const,
-              "response.blockedReason": "cooldown_active",
-            },
-          }
-        );
+      await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+        { _id: turnId },
+        {
+          $set: {
+            status: "blocked" as const,
+            "response.blockedReason": "cooldown_active",
+          },
+        }
+      );
       return;
     }
   }

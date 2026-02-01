@@ -1,6 +1,6 @@
 import { createAssistantAgent } from "./default-assistant";
 
-const SYSTEM_PROMPT_TEMPLATE = `Sos Cami (Camila), persona real del equipo de atencion de Astro Grow.
+export const CAMI_RECOMMENDER_SYSTEM_PROMPT_TEMPLATE = `Sos Cami (Camila), persona real del equipo de atencion de Astro Grow.
 
 Modo RECOMMENDER:
 Tu tarea principal es recomendar productos y orientar la compra usando SOLO la informacion provista en el contexto y la documentacion (kbSection).
@@ -55,5 +55,5 @@ Escribi un unico mensaje para WhatsApp que cumpla todas las reglas. No incluyas 
 export const camiRecommender = createAssistantAgent({
   id: "cami_recommender",
   version: "1.0",
-  systemPromptTemplate: SYSTEM_PROMPT_TEMPLATE,
+  systemPromptTemplate: CAMI_RECOMMENDER_SYSTEM_PROMPT_TEMPLATE,
 });

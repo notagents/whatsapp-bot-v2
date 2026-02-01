@@ -31,12 +31,14 @@ type Props = {
   sessionId: string;
   conversationId: string | null;
   onResetDone?: () => void;
+  configOverride?: "draft" | "published";
 };
 
 export function SimulatorChatWindow({
   sessionId,
   conversationId,
   onResetDone,
+  configOverride,
 }: Props) {
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -85,7 +87,10 @@ export function SimulatorChatWindow({
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: values.text }),
+        body: JSON.stringify({
+          text: values.text,
+          ...(configOverride && { config: configOverride }),
+        }),
       }
     );
     if (res.ok) {
@@ -100,7 +105,9 @@ export function SimulatorChatWindow({
   async function handleClearCooldown() {
     if (!conversationId) return;
     await fetch(
-      `/api/conversations/${encodeURIComponent(conversationId)}/responses-enabled`,
+      `/api/conversations/${encodeURIComponent(
+        conversationId
+      )}/responses-enabled`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -173,7 +180,8 @@ export function SimulatorChatWindow({
                   }`}
                 >
                   <span className="text-muted-foreground text-xs">
-                    {new Date(m.messageTime * 1000).toLocaleString()} · {m.source}
+                    {new Date(m.messageTime * 1000).toLocaleString()} ·{" "}
+                    {m.source}
                   </span>
                   <p className="mt-1">{m.messageText}</p>
                 </div>

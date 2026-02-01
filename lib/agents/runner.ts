@@ -4,6 +4,7 @@ import { AGENT_RUNS_COLLECTION } from "@/lib/db";
 import type { AgentRun, Turn } from "@/lib/models";
 import type { Agent, AgentRunParams, AgentRunResult } from "./types";
 import { createToolSet, type KbToolConfig } from "./tools";
+import { resolveAgentConfig } from "./prompt-resolver";
 
 export type ExecuteAgentRunParams = {
   turnId: ObjectId;
@@ -25,6 +26,14 @@ export async function executeAgentRun(
 ): Promise<AgentRun> {
   const { turnId, agentId, turn, context, agent, kbConfig, aiClassification } =
     params;
+  const channel = turn.channel ?? "whatsapp";
+  const override = turn.configOverride;
+  const agentConfig = await resolveAgentConfig(
+    turn.sessionId,
+    agentId,
+    channel,
+    override
+  );
   const db = await getDb();
   const tools = createToolSet(turn.whatsappId, turn.sessionId, kbConfig);
   const runParams: AgentRunParams = {
@@ -32,6 +41,12 @@ export async function executeAgentRun(
     turn,
     context,
     tools,
+    agentConfig: {
+      systemPromptTemplate: agentConfig.systemPromptTemplate,
+      model: agentConfig.model,
+      temperature: agentConfig.temperature,
+      maxToolRounds: agentConfig.maxToolRounds,
+    },
   };
   const startedAt = Date.now();
   const input = {
