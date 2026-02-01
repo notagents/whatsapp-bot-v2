@@ -65,7 +65,9 @@ const keywordRouterSchema = z.object({
 
 const aiRouterSchema = z.object({
   type: z.literal("ai"),
-  model: z.enum(["gpt-4o-mini", "gpt-4o"]).default("gpt-4o-mini"),
+  model: z
+    .enum(["gpt-4o-mini", "gpt-4o", "gpt-5-mini", "gpt-5-nano"])
+    .default("gpt-5-mini"),
   temperature: z.number().min(0).max(1).default(0.3),
   routes: z.array(aiRouteSchema),
   defaultRoute: z.string().optional(),

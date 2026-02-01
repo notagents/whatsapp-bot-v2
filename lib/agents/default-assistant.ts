@@ -82,7 +82,7 @@ export function createAssistantAgent(
       while (round < maxRounds) {
         const toolDefs = tools.definitions ?? TOOL_DEFINITIONS;
         const completion = await openai.chat.completions.create({
-          model: "gpt-4o-mini",
+          model: "gpt-5-mini",
           messages: currentMessages,
           tools: toolDefs,
           temperature: 0.7,

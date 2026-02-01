@@ -101,7 +101,11 @@ Clasifica este mensaje en la categoría correcta. Responde con el valor exacto d
 
   try {
     const completion = await openai.chat.completions.create({
-      model: router.model as "gpt-4o-mini" | "gpt-4o",
+      model: router.model as
+        | "gpt-4o-mini"
+        | "gpt-4o"
+        | "gpt-5-mini"
+        | "gpt-5-nano",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
@@ -197,7 +201,11 @@ Clasifica este mensaje en la categoría correcta. Responde con el valor exacto d
 
   try {
     const completion = await openai.chat.completions.create({
-      model: router.model as "gpt-4o-mini" | "gpt-4o",
+      model: router.model as
+        | "gpt-4o-mini"
+        | "gpt-4o"
+        | "gpt-5-mini"
+        | "gpt-5-nano",
       messages: [
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
