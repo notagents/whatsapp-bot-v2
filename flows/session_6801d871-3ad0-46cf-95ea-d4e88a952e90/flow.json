@@ -324,73 +324,109 @@
 
     "CAT1_SEMILLAS_RECOMMEND": {
       "agent": "cami_recommender",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT2_SUSTRATOS": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT3_FERTILIZANTES": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT4_ILUMINACION": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT5_CARPAS": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT6_VENTILACION": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT7_PLAGAS": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT8_ACCESORIOS": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT9_SETUP": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT11_ASESORAMIENTO": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "CAT12_VAPOS": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 
     "INFO_KB": {
       "agent": "cami_default",
-      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "kbV2": {
+        "md": { "enabled": true, "topK": 4 },
+        "tables": { "enabled": true, "tableKeys": ["products"] }
+      },
       "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
     },
 

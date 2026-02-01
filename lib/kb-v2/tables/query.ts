@@ -22,6 +22,41 @@ export type TableQueryParams = {
   limit: number;
 };
 
+function extractNumericHints(query: string): string[] {
+  const digits = query.replace(/\D/g, " ").trim().split(/\s+/).filter(Boolean);
+  const normalized = query
+    .toLowerCase()
+    .replace(/\s*(lts?|lt|litros?|kg|gr|g|ml)\s*/gi, " ")
+    .trim();
+  const fromWords = normalized.match(/\d+/g) ?? [];
+  return [...new Set([...digits, ...fromWords])];
+}
+
+function scoreRowForQuery(
+  row: KbRow,
+  query: string,
+  numericHints: string[]
+): number {
+  const name = [
+    (row.search as { name?: string })?.name,
+    (row.data as { name?: string })?.name,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  const q = query.toLowerCase().trim();
+  let score = 0;
+  if (name.includes(q)) score += 100;
+  const qWords = q.split(/\s+/).filter(Boolean);
+  for (const w of qWords) {
+    if (w.length > 1 && name.includes(w)) score += 20;
+  }
+  for (const hint of numericHints) {
+    if (hint && name.includes(hint)) score += 50;
+  }
+  return score;
+}
+
 export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
   const { sessionId, tableKey, query, limit } = params;
   if (!query?.trim()) {
@@ -29,6 +64,8 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
   }
   const db = await getDb();
   const col = db.collection<KbRow>(KB_ROWS_COLLECTION);
+  const cap = Math.min(limit * 2, 50);
+  let rows: KbRow[];
   try {
     const cursor = col
       .find({
@@ -42,8 +79,8 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
         search: 1,
         updatedAt: 1,
       })
-      .limit(Math.min(limit, 50));
-    return cursor.toArray();
+      .limit(cap);
+    rows = await cursor.toArray();
   } catch {
     const cursor = col
       .find({
@@ -54,9 +91,18 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
           { "data.name": { $regex: query.trim(), $options: "i" } },
         ],
       })
-      .limit(Math.min(limit, 50));
-    return cursor.toArray();
+      .limit(cap);
+    rows = await cursor.toArray();
   }
+  const numericHints = extractNumericHints(query);
+  if (numericHints.length > 0 || query.includes(" ")) {
+    rows = [...rows].sort((a, b) => {
+      const sa = scoreRowForQuery(a, query, numericHints);
+      const sb = scoreRowForQuery(b, query, numericHints);
+      return sb - sa;
+    });
+  }
+  return rows.slice(0, limit);
 }
 
 export async function getRowByPk(

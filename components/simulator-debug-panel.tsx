@@ -26,16 +26,59 @@ type AiClassification = {
   routerType: "ai" | "keyword";
 };
 
+type ToolCall = {
+  name: string;
+  args: unknown;
+  result: unknown;
+};
+
 type AgentRun = {
   _id: string;
   startedAt?: number;
   output?: {
     assistantText?: string;
-    toolCalls?: unknown[];
+    toolCalls?: ToolCall[];
     kbUsage?: KbUsage;
     aiClassification?: AiClassification;
   };
 };
+
+const KB_TOOL_PREFIXES = ["kb_md_", "kb_table_"];
+
+function isKbTool(name: string): boolean {
+  return KB_TOOL_PREFIXES.some((p) => name.startsWith(p));
+}
+
+function formatKbRequest(name: string, args: unknown): string {
+  const a = (args ?? {}) as Record<string, unknown>;
+  const parts: string[] = [];
+  if (typeof a.query === "string")
+    parts.push(
+      `query: "${a.query.slice(0, 40)}${a.query.length > 40 ? "…" : ""}"`
+    );
+  if (typeof a.tableKey === "string") parts.push(`tableKey: ${a.tableKey}`);
+  if (typeof a.pk === "string") parts.push(`pk: ${a.pk}`);
+  if (typeof a.slug === "string") parts.push(`slug: ${a.slug}`);
+  if (Array.isArray(a.slugs))
+    parts.push(`slugs: [${(a.slugs as string[]).join(", ")}]`);
+  if (typeof a.limit === "number") parts.push(`limit: ${a.limit}`);
+  if (a.filter && typeof a.filter === "object")
+    parts.push(`filter: ${JSON.stringify(a.filter).slice(0, 30)}…`);
+  return parts.length ? parts.join(", ") : JSON.stringify(a).slice(0, 60);
+}
+
+function formatKbResult(name: string, result: unknown): string {
+  if (result == null) return "—";
+  const r = result as Record<string, unknown>;
+  if (r.error) return `error: ${String(r.error)}`;
+  if (Array.isArray(r.results)) {
+    const n = r.results.length;
+    return n === 0 ? "0 results" : `${n} result(s)`;
+  }
+  if (r.results && Array.isArray(r.results))
+    return `${(r.results as unknown[]).length} result(s)`;
+  return "ok";
+}
 
 type TurnsResponse = { turns: Turn[] };
 type TurnDetailResponse = {
@@ -224,6 +267,39 @@ export function SimulatorDebugPanel({
               <p className="text-muted-foreground text-xs">
                 Type: {lastAgentRun.output.aiClassification.routerType}
               </p>
+            </CardContent>
+          </Card>
+        )}
+        {lastAgentRun?.output && (
+          <Card>
+            <CardHeader className="py-2">
+              <CardTitle className="text-sm">KB Calls</CardTitle>
+            </CardHeader>
+            <CardContent className="py-2 text-sm space-y-3">
+              {lastAgentRun.output.toolCalls?.filter((tc) =>
+                isKbTool(tc.name)
+              ).length ? (
+                lastAgentRun.output.toolCalls
+                  .filter((tc) => isKbTool(tc.name))
+                  .map((tc, i) => (
+                    <div
+                      key={i}
+                      className="rounded border bg-muted/30 p-2 space-y-1 text-xs"
+                    >
+                      <p className="font-mono font-medium">{tc.name}</p>
+                      <p className="text-muted-foreground break-words">
+                        Request: {formatKbRequest(tc.name, tc.args)}
+                      </p>
+                      <p className="text-muted-foreground">
+                        Result: {formatKbResult(tc.name, tc.result)}
+                      </p>
+                    </div>
+                  ))
+              ) : (
+                <p className="text-muted-foreground text-xs">
+                  No se llamo a ninguna KB en este turno.
+                </p>
+              )}
             </CardContent>
           </Card>
         )}

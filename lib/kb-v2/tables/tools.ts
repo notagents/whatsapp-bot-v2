@@ -18,8 +18,8 @@ export const KB_TABLE_TOOLS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
           query: { type: "string", description: "Texto a buscar" },
           limit: {
             type: "number",
-            description: "Max resultados (default 5)",
-            default: 5,
+            description: "Max resultados (default 10)",
+            default: 10,
           },
         },
         required: ["query"],
@@ -93,7 +93,7 @@ export async function executeKbTableTool(
         sessionId,
         tableKey,
         query,
-        limit: typeof a?.limit === "number" ? Math.min(a.limit, 20) : 5,
+        limit: typeof a?.limit === "number" ? Math.min(a.limit, 50) : 10,
       });
       return {
         results: rows.map((r) => ({ pk: r.pk, data: r.data })),
