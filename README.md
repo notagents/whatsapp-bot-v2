@@ -8,7 +8,7 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 - **Worker**: local `npm run worker` (tsx) o Vercel Cron `GET /api/cron/jobs` (header `Authorization: Bearer CRON_SECRET`). Cron procesa hasta 10 jobs por invocación.
 - **Debug**: `GET /api/conversations/[whatsappId]/turns?limit=50`, `GET /api/turns/[turnId]`, `GET /api/agent-runs/[runId]`.
 
-Env: `MONGODB_URI`, `MONGODB_DB_NAME`, `BAILEYS_API_URL`, `BAILEYS_API_KEY`, `OPENAI_API_KEY`, `CRON_SECRET` (opcional, para cron).
+Env: `MONGODB_URI`, `MONGODB_DB_NAME`, `BAILEYS_API_URL`, `BAILEYS_API_KEY`, `OPENAI_API_KEY`, `CRON_SECRET` (opcional, para cron). Login (opcional): `LOGIN_USERNAME` y `LOGIN_PASSWORD`; si están definidos, la app exige login en `/login`.
 
 ## Getting Started
 
