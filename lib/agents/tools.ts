@@ -4,6 +4,8 @@ import type { Message } from "@/lib/models";
 import { getActualJid } from "@/lib/conversation";
 import { sendWhatsAppMessage } from "@/lib/send-whatsapp";
 import { updateResponsesEnabled } from "@/lib/conversation-state";
+import { KB_MD_TOOLS, executeKbMdTool } from "@/lib/kb-v2/md/tools";
+import { KB_TABLE_TOOLS, executeKbTableTool } from "@/lib/kb-v2/tables/tools";
 import type { ToolSet } from "./types";
 
 const TOOL_DEFINITIONS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
@@ -28,7 +30,10 @@ const TOOL_DEFINITIONS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
         type: "object",
         properties: {
           enabled: { type: "boolean" },
-          disabledUntilUTC: { type: "string", description: "ISO date string for cooldown end" },
+          disabledUntilUTC: {
+            type: "string",
+            description: "ISO date string for cooldown end",
+          },
         },
       },
     },
@@ -64,10 +69,29 @@ const TOOL_DEFINITIONS: OpenAI.Chat.Completions.ChatCompletionTool[] = [
 
 export { TOOL_DEFINITIONS };
 
-export function createToolSet(whatsappId: string, sessionId: string): ToolSet {
+export type KbToolConfig = { md?: boolean; tables?: boolean };
+
+export function createToolSet(
+  whatsappId: string,
+  sessionId: string,
+  kbConfig?: KbToolConfig
+): ToolSet {
+  const definitions: OpenAI.Chat.Completions.ChatCompletionTool[] = [
+    ...TOOL_DEFINITIONS,
+  ];
+  if (kbConfig?.md) definitions.push(...KB_MD_TOOLS);
+  if (kbConfig?.tables) definitions.push(...KB_TABLE_TOOLS);
+
   return {
+    definitions,
     async execute(name: string, args: unknown): Promise<unknown> {
       const a = args as Record<string, unknown>;
+      if (name.startsWith("kb_md_")) {
+        return executeKbMdTool(name, args, sessionId);
+      }
+      if (name.startsWith("kb_table_")) {
+        return executeKbTableTool(name, args, sessionId);
+      }
       switch (name) {
         case "send_message":
           return sendWhatsAppMessage({
@@ -83,7 +107,8 @@ export function createToolSet(whatsappId: string, sessionId: string): ToolSet {
           });
         case "get_recent_messages": {
           const db = await getDb();
-          const limit = typeof a?.limit === "number" ? Math.min(a.limit, 50) : 10;
+          const limit =
+            typeof a?.limit === "number" ? Math.min(a.limit, 50) : 10;
           const messages = await db
             .collection<Message>(MESSAGES_COLLECTION)
             .find({ whatsappId })
@@ -98,7 +123,10 @@ export function createToolSet(whatsappId: string, sessionId: string): ToolSet {
         }
         case "http_fetch": {
           const url = String(a?.url ?? "");
-          if (!url.startsWith("https://") && !url.startsWith("http://localhost")) {
+          if (
+            !url.startsWith("https://") &&
+            !url.startsWith("http://localhost")
+          ) {
             return { error: true, message: "URL not allowed" };
           }
           try {

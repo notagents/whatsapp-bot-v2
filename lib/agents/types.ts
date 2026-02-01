@@ -32,9 +32,14 @@ export type AgentRunResult = {
   assistantText?: string;
   toolCalls?: ToolCall[];
   actions?: Action[];
+  kbUsage?: {
+    mdChunks?: Array<{ docId?: string; chunkId: string; slug: string }>;
+    tableRows?: Array<{ tableKey: string; pk: string }>;
+  };
 };
 
 export interface ToolSet {
+  definitions?: import("openai").Chat.Completions.ChatCompletionTool[];
   execute(name: string, args: unknown): Promise<unknown>;
 }
 

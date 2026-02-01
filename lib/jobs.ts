@@ -13,6 +13,7 @@ import {
   isSimulatorConversation,
   parseSimulatorConversationId,
 } from "./conversation";
+import { reindexMarkdownDoc } from "./kb-v2/md/chunker";
 
 const DEBOUNCE_DELAY_MS = 3000;
 const LOCK_TTL_MS = 60000;
@@ -20,14 +21,33 @@ const MAX_ATTEMPTS = 3;
 const UNPROCESSED_WINDOW_MS = 30000;
 
 export type EnqueueJobPayload =
-  | { type: "debounceTurn"; payload: { whatsappId: string }; scheduledFor?: number }
+  | {
+      type: "debounceTurn";
+      payload: { whatsappId: string };
+      scheduledFor?: number;
+    }
   | { type: "runAgent"; payload: { turnId: string }; scheduledFor?: number }
-  | { type: "sendReply"; payload: { turnId: string; agentRunId: string }; scheduledFor?: number }
-  | { type: "memoryUpdate"; payload: { turnId: string; agentRunId: string }; scheduledFor?: number };
+  | {
+      type: "sendReply";
+      payload: { turnId: string; agentRunId: string };
+      scheduledFor?: number;
+    }
+  | {
+      type: "memoryUpdate";
+      payload: { turnId: string; agentRunId: string };
+      scheduledFor?: number;
+    }
+  | {
+      type: "kbReindexMarkdown";
+      payload: { docId: string };
+      scheduledFor?: number;
+    };
 
-function getJobTypeAndPayload(
-  enqueue: EnqueueJobPayload
-): { type: JobType; payload: unknown; scheduledFor: number } {
+function getJobTypeAndPayload(enqueue: EnqueueJobPayload): {
+  type: JobType;
+  payload: unknown;
+  scheduledFor: number;
+} {
   const now = Date.now();
   switch (enqueue.type) {
     case "debounceTurn":
@@ -37,17 +57,37 @@ function getJobTypeAndPayload(
         scheduledFor: enqueue.scheduledFor ?? now + DEBOUNCE_DELAY_MS,
       };
     case "runAgent":
-      return { type: "runAgent", payload: enqueue.payload, scheduledFor: enqueue.scheduledFor ?? now };
+      return {
+        type: "runAgent",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
     case "sendReply":
-      return { type: "sendReply", payload: enqueue.payload, scheduledFor: enqueue.scheduledFor ?? now };
+      return {
+        type: "sendReply",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
     case "memoryUpdate":
-      return { type: "memoryUpdate", payload: enqueue.payload, scheduledFor: enqueue.scheduledFor ?? now };
+      return {
+        type: "memoryUpdate",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
+    case "kbReindexMarkdown":
+      return {
+        type: "kbReindexMarkdown",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
     default:
       throw new Error("Unknown job type");
   }
 }
 
-export async function enqueueJob(enqueue: EnqueueJobPayload): Promise<ObjectId> {
+export async function enqueueJob(
+  enqueue: EnqueueJobPayload
+): Promise<ObjectId> {
   const { type, payload, scheduledFor } = getJobTypeAndPayload(enqueue);
   const db = await getDb();
   const col = db.collection<Job>(JOBS_COLLECTION);
@@ -67,7 +107,9 @@ export async function enqueueJob(enqueue: EnqueueJobPayload): Promise<ObjectId> 
 
 async function acquireLock(key: string): Promise<boolean> {
   const db = await getDb();
-  const col = db.collection<{ key: string; expiresAt: number }>(LOCKS_COLLECTION);
+  const col = db.collection<{ key: string; expiresAt: number }>(
+    LOCKS_COLLECTION
+  );
   const now = Date.now();
   const existing = await col.findOne({ key });
   if (existing && existing.expiresAt > now) return false;
@@ -119,7 +161,10 @@ async function processDebounceTurn(job: Job): Promise<void> {
   const acquired = await acquireLock(lockKey);
   if (!acquired) return;
   try {
-    const messages = await getUnprocessedMessages(whatsappId, UNPROCESSED_WINDOW_MS);
+    const messages = await getUnprocessedMessages(
+      whatsappId,
+      UNPROCESSED_WINDOW_MS
+    );
     if (messages.length === 0) return;
     const first = messages[0];
     const turnDoc: Omit<Turn, "_id"> = {
@@ -129,11 +174,16 @@ async function processDebounceTurn(job: Job): Promise<void> {
       channel: first.channel,
       createdAt: Date.now(),
       messageIds: messages.map((m) => m._id!).filter(Boolean),
-      text: messages.map((m) => m.messageText).join(" ").trim(),
+      text: messages
+        .map((m) => m.messageText)
+        .join(" ")
+        .trim(),
       status: "queued",
     };
     const db = await getDb();
-    const turnResult = await db.collection<Turn>(TURNS_COLLECTION).insertOne(turnDoc as Turn);
+    const turnResult = await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .insertOne(turnDoc as Turn);
     const turnId = turnResult.insertedId!;
     await markMessagesProcessed(turnDoc.messageIds);
     await enqueueJob({
@@ -172,6 +222,9 @@ export async function processNextJob(): Promise<boolean> {
       case "memoryUpdate":
         await processMemoryUpdateImpl(job);
         break;
+      case "kbReindexMarkdown":
+        await processKbReindexMarkdown(job);
+        break;
       default:
         throw new Error(`Unknown job type: ${(job as Job).type}`);
     }
@@ -203,35 +256,60 @@ async function processRunAgentImpl(job: Job): Promise<void> {
   const payload = job.payload as { turnId: string };
   const turnId = new ObjectId(payload.turnId);
   const db = await getDb();
-  const turn = await db.collection<Turn>(TURNS_COLLECTION).findOne({ _id: turnId });
+  const turn = await db
+    .collection<Turn>(TURNS_COLLECTION)
+    .findOne({ _id: turnId });
   if (!turn) throw new Error(`Turn not found: ${payload.turnId}`);
-  const claimed = await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-    { _id: turnId, status: "queued" },
-    { $set: { status: "running" as const } }
-  );
+  const claimed = await db
+    .collection<Turn>(TURNS_COLLECTION)
+    .updateOne(
+      { _id: turnId, status: "queued" },
+      { $set: { status: "running" as const } }
+    );
   if (claimed.modifiedCount === 0) return;
   const oneMinuteAgo = Date.now() - 60000;
-  const recentCount = await db.collection<Turn>(TURNS_COLLECTION).countDocuments({
-    whatsappId: turn.whatsappId,
-    createdAt: { $gte: oneMinuteAgo },
-    status: { $in: ["done", "running"] },
-  });
+  const recentCount = await db
+    .collection<Turn>(TURNS_COLLECTION)
+    .countDocuments({
+      whatsappId: turn.whatsappId,
+      createdAt: { $gte: oneMinuteAgo },
+      status: { $in: ["done", "running"] },
+    });
   if (recentCount > RATE_LIMIT_TURNS_PER_MINUTE) {
-    console.warn("[runAgent] Blocked: rate_limit", { whatsappId: turn.whatsappId, recentCount });
-    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-      { _id: turnId },
-      { $set: { status: "blocked" as const, "response.blockedReason": "rate_limit" } }
-    );
+    console.warn("[runAgent] Blocked: rate_limit", {
+      whatsappId: turn.whatsappId,
+      recentCount,
+    });
+    await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .updateOne(
+        { _id: turnId },
+        {
+          $set: {
+            status: "blocked" as const,
+            "response.blockedReason": "rate_limit",
+          },
+        }
+      );
     return;
   }
   const { getResponsesEnabled } = await import("@/lib/conversation-state");
   const responseConfig = await getResponsesEnabled(turn.whatsappId);
   if (!responseConfig.enabled) {
-    console.warn("[runAgent] Blocked: responses_disabled", { whatsappId: turn.whatsappId });
-    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-      { _id: turnId },
-      { $set: { status: "blocked" as const, "response.blockedReason": "responses_disabled" } }
-    );
+    console.warn("[runAgent] Blocked: responses_disabled", {
+      whatsappId: turn.whatsappId,
+    });
+    await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .updateOne(
+        { _id: turnId },
+        {
+          $set: {
+            status: "blocked" as const,
+            "response.blockedReason": "responses_disabled",
+          },
+        }
+      );
     return;
   }
   if (responseConfig.disabledUntilUTC) {
@@ -241,10 +319,17 @@ async function processRunAgentImpl(job: Job): Promise<void> {
         whatsappId: turn.whatsappId,
         disabledUntilUTC: responseConfig.disabledUntilUTC,
       });
-      await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-        { _id: turnId },
-        { $set: { status: "blocked" as const, "response.blockedReason": "cooldown_active" } }
-      );
+      await db
+        .collection<Turn>(TURNS_COLLECTION)
+        .updateOne(
+          { _id: turnId },
+          {
+            $set: {
+              status: "blocked" as const,
+              "response.blockedReason": "cooldown_active",
+            },
+          }
+        );
       return;
     }
   }
@@ -267,8 +352,12 @@ async function processRunAgentImpl(job: Job): Promise<void> {
           mode: flowResult.meta.mode,
           flowPath: flowResult.meta.flowPath,
           ...(flowResult.meta.state && { state: flowResult.meta.state }),
-          ...(flowResult.meta.kbUsed !== undefined && { kbUsed: flowResult.meta.kbUsed }),
-          ...(flowResult.meta.kbChunks !== undefined && { kbChunks: flowResult.meta.kbChunks }),
+          ...(flowResult.meta.kbUsed !== undefined && {
+            kbUsed: flowResult.meta.kbUsed,
+          }),
+          ...(flowResult.meta.kbChunks !== undefined && {
+            kbChunks: flowResult.meta.kbChunks,
+          }),
         },
         status: "done" as const,
       },
@@ -318,7 +407,9 @@ async function processRunAgentImpl(job: Job): Promise<void> {
 }
 
 async function processSendReplyImpl(job: Job): Promise<void> {
-  const { getResponsesEnabled, isInCooldown } = await import("@/lib/conversation-state");
+  const { getResponsesEnabled, isInCooldown } = await import(
+    "@/lib/conversation-state"
+  );
   const { getActualJid } = await import("@/lib/conversation");
   const { sendWhatsAppMessage } = await import("@/lib/send-whatsapp");
   const payload = job.payload as { turnId: string; agentRunId: string };
@@ -341,10 +432,12 @@ async function processSendReplyImpl(job: Job): Promise<void> {
       enabled: responseConfig.enabled,
       disabledUntilUTC: responseConfig.disabledUntilUTC,
     });
-    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
-      { _id: turn._id },
-      { $set: { "response.blockedReason": "responses_disabled_on_send" } }
-    );
+    await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .updateOne(
+        { _id: turn._id },
+        { $set: { "response.blockedReason": "responses_disabled_on_send" } }
+      );
     return;
   }
 
@@ -397,8 +490,18 @@ async function processSendReplyImpl(job: Job): Promise<void> {
   );
 }
 
+async function processKbReindexMarkdown(job: Job): Promise<void> {
+  const payload = job.payload as { docId: string };
+  await reindexMarkdownDoc(new ObjectId(payload.docId));
+}
+
 async function processMemoryUpdateImpl(job: Job): Promise<void> {
-  const { extractFactsFromTurn, upsertMemoryFacts, generateRecap, updateMemoryRecap } = await import("@/lib/memory");
+  const {
+    extractFactsFromTurn,
+    upsertMemoryFacts,
+    generateRecap,
+    updateMemoryRecap,
+  } = await import("@/lib/memory");
   const { getRecentTurns } = await import("@/lib/turns");
   const payload = job.payload as { turnId: string };
   const db = await getDb();

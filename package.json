@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "worker": "tsx scripts/worker.ts"
+    "worker": "tsx scripts/worker.ts",
+    "seed-kb": "tsx scripts/seed-kb.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

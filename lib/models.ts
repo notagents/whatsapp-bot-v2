@@ -9,7 +9,19 @@ import {
   JOBS_COLLECTION,
   CONVERSATION_STATE_COLLECTION,
   LOCKS_COLLECTION,
+  KB_MD_DOCS_COLLECTION,
+  KB_MD_CHUNKS_COLLECTION,
+  KB_TABLES_COLLECTION,
+  KB_ROWS_COLLECTION,
+  KB_SYNC_RUNS_COLLECTION,
 } from "./db";
+import type {
+  KbMdDoc,
+  KbMdChunk,
+  KbTable,
+  KbRow,
+  KbSyncRun,
+} from "./kb-v2/types";
 
 export type Message = {
   _id?: ObjectId;
@@ -92,6 +104,10 @@ export type AgentRunOutput = {
   assistantText?: string;
   toolCalls?: Array<{ name: string; args: unknown; result: unknown }>;
   tokens?: { in?: number; out?: number };
+  kbUsage?: {
+    mdChunks?: Array<{ docId?: string; chunkId: string; slug: string }>;
+    tableRows?: Array<{ tableKey: string; pk: string }>;
+  };
 };
 
 export type AgentRun = {
@@ -127,7 +143,12 @@ export type Memory = {
   recap: MemoryRecap;
 };
 
-export type JobType = "debounceTurn" | "runAgent" | "sendReply" | "memoryUpdate";
+export type JobType =
+  | "debounceTurn"
+  | "runAgent"
+  | "sendReply"
+  | "memoryUpdate"
+  | "kbReindexMarkdown";
 
 export type JobStatus = "pending" | "processing" | "completed" | "failed";
 
@@ -157,7 +178,9 @@ export async function ensureIndexes(): Promise<void> {
   const messages = db.collection<Message>(MESSAGES_COLLECTION);
   await messages.createIndex({ whatsappId: 1, messageTime: -1 });
   await messages.createIndex({ whatsappId: 1, processed: 1, source: 1 });
-  const responsesEnabled = db.collection<ResponsesEnabled>(RESPONSES_ENABLED_COLLECTION);
+  const responsesEnabled = db.collection<ResponsesEnabled>(
+    RESPONSES_ENABLED_COLLECTION
+  );
   await responsesEnabled.createIndex({ whatsappId: 1 }, { unique: true });
   const turns = db.collection<Turn>(TURNS_COLLECTION);
   await turns.createIndex({ whatsappId: 1, createdAt: -1 });
@@ -171,8 +194,34 @@ export async function ensureIndexes(): Promise<void> {
   const jobs = db.collection<Job>(JOBS_COLLECTION);
   await jobs.createIndex({ status: 1, scheduledFor: 1 });
   await jobs.createIndex({ type: 1, status: 1 });
-  const conversationState = db.collection<ConversationStateDoc>(CONVERSATION_STATE_COLLECTION);
+  const conversationState = db.collection<ConversationStateDoc>(
+    CONVERSATION_STATE_COLLECTION
+  );
   await conversationState.createIndex({ whatsappId: 1 }, { unique: true });
   const locks = db.collection<{ key: string }>(LOCKS_COLLECTION);
   await locks.createIndex({ key: 1 }, { unique: true });
+  const kbMdDocs = db.collection<KbMdDoc>(KB_MD_DOCS_COLLECTION);
+  await kbMdDocs.createIndex({ sessionId: 1, slug: 1 }, { unique: true });
+  await kbMdDocs.createIndex({ sessionId: 1, status: 1 });
+  const kbMdChunks = db.collection<KbMdChunk>(KB_MD_CHUNKS_COLLECTION);
+  await kbMdChunks.createIndex(
+    { sessionId: 1, docId: 1, chunkId: 1 },
+    { unique: true }
+  );
+  await kbMdChunks.createIndex({ text: "text" });
+  const kbTables = db.collection<KbTable>(KB_TABLES_COLLECTION);
+  await kbTables.createIndex({ sessionId: 1, tableKey: 1 }, { unique: true });
+  const kbRows = db.collection<KbRow>(KB_ROWS_COLLECTION);
+  await kbRows.createIndex(
+    { sessionId: 1, tableKey: 1, pk: 1 },
+    { unique: true }
+  );
+  await kbRows.createIndex({ sessionId: 1, tableKey: 1, "search.category": 1 });
+  await kbRows.createIndex({ "search.name": "text" });
+  const kbSyncRuns = db.collection<KbSyncRun>(KB_SYNC_RUNS_COLLECTION);
+  await kbSyncRuns.createIndex(
+    { sessionId: 1, tableKey: 1, batchId: 1 },
+    { unique: true }
+  );
+  await kbSyncRuns.createIndex({ status: 1, receivedAt: -1 });
 }

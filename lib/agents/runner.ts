@@ -3,7 +3,7 @@ import { getDb } from "@/lib/db";
 import { AGENT_RUNS_COLLECTION } from "@/lib/db";
 import type { AgentRun, Turn } from "@/lib/models";
 import type { Agent, AgentRunParams, AgentRunResult } from "./types";
-import { createToolSet } from "./tools";
+import { createToolSet, type KbToolConfig } from "./tools";
 
 export type ExecuteAgentRunParams = {
   turnId: ObjectId;
@@ -11,12 +11,15 @@ export type ExecuteAgentRunParams = {
   turn: Turn;
   context: AgentRunParams["context"];
   agent: Agent;
+  kbConfig?: KbToolConfig;
 };
 
-export async function executeAgentRun(params: ExecuteAgentRunParams): Promise<AgentRun> {
-  const { turnId, agentId, turn, context, agent } = params;
+export async function executeAgentRun(
+  params: ExecuteAgentRunParams
+): Promise<AgentRun> {
+  const { turnId, agentId, turn, context, agent, kbConfig } = params;
   const db = await getDb();
-  const tools = createToolSet(turn.whatsappId, turn.sessionId);
+  const tools = createToolSet(turn.whatsappId, turn.sessionId, kbConfig);
   const runParams: AgentRunParams = {
     turnId,
     turn,
@@ -74,6 +77,7 @@ export async function executeAgentRun(params: ExecuteAgentRunParams): Promise<Ag
         output: {
           assistantText: agentResult.assistantText,
           toolCalls: agentResult.toolCalls,
+          ...(agentResult.kbUsage && { kbUsage: agentResult.kbUsage }),
         },
       },
     }

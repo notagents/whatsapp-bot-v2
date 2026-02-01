@@ -34,6 +34,11 @@ export function SimulatorSession({ sessionId }: Props) {
           <Link href="/sim">← Sim</Link>
         </Button>
         <span className="ml-2 font-mono text-sm truncate">{sessionId}</span>
+        <Button variant="outline" size="sm" className="ml-auto" asChild>
+          <Link href={`/kb/${encodeURIComponent(sessionId)}`}>
+            Gestionar KB
+          </Link>
+        </Button>
       </header>
       <div className="flex flex-1 pt-12 min-h-0">
         <SimulatorConversationsSidebar

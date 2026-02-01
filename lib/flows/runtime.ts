@@ -7,6 +7,7 @@ import type { ResolvedFlow, SimpleFlowConfig } from "./types";
 import { resolveFlow } from "./registry";
 import { loadKB } from "@/lib/kb/loader";
 import { retrieveChunks } from "@/lib/kb/retriever";
+import { searchChunks } from "@/lib/kb-v2/md/retriever";
 import { getAgent, executeAgentRun } from "@/lib/agents/runner";
 
 export type FlowMeta = {
@@ -30,7 +31,9 @@ export type ExecuteFlowParams = {
   resolvedFlow?: ResolvedFlow;
 };
 
-export async function executeFlow(params: ExecuteFlowParams): Promise<FlowResult> {
+export async function executeFlow(
+  params: ExecuteFlowParams
+): Promise<FlowResult> {
   const { sessionId, turn, context, resolvedFlow: provided } = params;
   const resolved = provided ?? (await resolveFlow(sessionId));
   const { config, flowPath } = resolved;
@@ -52,21 +55,54 @@ async function executeSimpleFlow(
   let kbChunksCount = 0;
 
   const contextWithKb: AgentContext = { ...context };
-  if (config.kb?.enabled) {
+  if (config.kbV2?.md?.enabled) {
+    try {
+      const topK = config.kbV2.md.topK ?? 4;
+      const mdResults = await searchChunks({
+        sessionId: turn.sessionId,
+        query: turn.text,
+        slugs: config.kbV2.md.slugs,
+        limit: topK,
+      });
+      if (mdResults.length > 0) {
+        contextWithKb.kbChunks = mdResults.map((r) => ({
+          text: r.text,
+          source: r.slug,
+        }));
+        kbUsed = true;
+        kbChunksCount = mdResults.length;
+      }
+    } catch (err) {
+      console.warn(
+        "[flow-runtime] KB v2 search failed, continuing without KB:",
+        err
+      );
+    }
+  } else if (config.kb?.enabled) {
     try {
       const chunks = await loadKB(turn.sessionId);
       const topK = config.kb.topK ?? 4;
       const retrieved = retrieveChunks(turn.text, chunks, topK);
       if (retrieved.length > 0) {
-        contextWithKb.kbChunks = retrieved.map((c) => ({ text: c.text, source: c.source }));
+        contextWithKb.kbChunks = retrieved.map((c) => ({
+          text: c.text,
+          source: c.source,
+        }));
         kbUsed = true;
         kbChunksCount = retrieved.length;
       }
     } catch (err) {
-      console.warn("[flow-runtime] KB load/retrieve failed, continuing without KB:", err);
+      console.warn(
+        "[flow-runtime] KB load/retrieve failed, continuing without KB:",
+        err
+      );
     }
   }
 
+  const kbConfig = {
+    md: !!config.kbV2?.md?.enabled,
+    tables: !!config.kbV2?.tables?.enabled,
+  };
   const agent = getAgent(config.agent);
   const agentRun = await executeAgentRun({
     turnId: turn._id!,
@@ -74,6 +110,7 @@ async function executeSimpleFlow(
     turn,
     context: contextWithKb,
     agent,
+    kbConfig,
   });
 
   const meta: FlowMeta = {
@@ -98,7 +135,9 @@ async function executeFSMFlow(
   depth = 0,
   turnEntryState?: string
 ): Promise<FlowResult> {
-  const { getConversationState, setConversationState } = await import("@/lib/conversation-state");
+  const { getConversationState, setConversationState } = await import(
+    "@/lib/conversation-state"
+  );
   const { config, flowPath } = resolved;
   if (config.mode !== "fsm") {
     const simpleConfig: SimpleFlowConfig = {
@@ -107,7 +146,12 @@ async function executeFSMFlow(
       kb: { enabled: false, topK: 4 },
       humanMode: { respectCooldown: true },
     };
-    return executeSimpleFlow(params.turn, params.context, simpleConfig, flowPath);
+    return executeSimpleFlow(
+      params.turn,
+      params.context,
+      simpleConfig,
+      flowPath
+    );
   }
 
   if (depth >= FSM_MAX_DEPTH) {
@@ -157,13 +201,14 @@ async function executeFSMFlow(
   }
 
   if (stateConfig.router) {
-    let nextStateName = resolveKeywordRouter(stateConfig.router, params.turn.text) ?? config.initialState;
+    let nextStateName =
+      resolveKeywordRouter(stateConfig.router, params.turn.text) ??
+      config.initialState;
     const nextStateConfig = states[nextStateName];
-    if (
-      nextStateConfig?.reply &&
-      nextStateName === entryState
-    ) {
-      const defaultRoute = stateConfig.router.routes.find((r) => r.default === true);
+    if (nextStateConfig?.reply && nextStateName === entryState) {
+      const defaultRoute = stateConfig.router.routes.find(
+        (r) => r.default === true
+      );
       if (defaultRoute) {
         nextStateName = defaultRoute.next;
       }
@@ -184,7 +229,25 @@ async function executeFSMFlow(
     if (resolvedNextConfig?.agent) {
       const agent = getAgent(resolvedNextConfig.agent);
       const contextWithKb: AgentContext = { ...params.context };
-      if (resolvedNextConfig.kb?.enabled) {
+      if (resolvedNextConfig.kbV2?.md?.enabled) {
+        try {
+          const topK = resolvedNextConfig.kbV2.md.topK ?? 4;
+          const mdResults = await searchChunks({
+            sessionId: params.turn.sessionId,
+            query: params.turn.text,
+            slugs: resolvedNextConfig.kbV2.md.slugs,
+            limit: topK,
+          });
+          if (mdResults.length > 0) {
+            contextWithKb.kbChunks = mdResults.map((r) => ({
+              text: r.text,
+              source: r.slug,
+            }));
+          }
+        } catch {
+          // continue without KB
+        }
+      } else if (resolvedNextConfig.kb?.enabled) {
         try {
           const chunks = await loadKB(params.turn.sessionId);
           const retrieved = retrieveChunks(
@@ -193,18 +256,26 @@ async function executeFSMFlow(
             resolvedNextConfig.kb.topK ?? 4
           );
           if (retrieved.length > 0) {
-            contextWithKb.kbChunks = retrieved.map((c) => ({ text: c.text, source: c.source }));
+            contextWithKb.kbChunks = retrieved.map((c) => ({
+              text: c.text,
+              source: c.source,
+            }));
           }
         } catch {
           // continue without KB
         }
       }
+      const kbConfig = {
+        md: !!resolvedNextConfig.kbV2?.md?.enabled,
+        tables: !!resolvedNextConfig.kbV2?.tables?.enabled,
+      };
       const agentRun = await executeAgentRun({
         turnId: params.turn._id!,
         agentId: resolvedNextConfig.agent,
         turn: params.turn,
         context: contextWithKb,
         agent,
+        kbConfig,
       });
       const transitionNext = resolvedNextConfig.transitions
         ? resolveTransition(resolvedNextConfig, params.turn.text)
@@ -217,7 +288,11 @@ async function executeFSMFlow(
         mode: "fsm",
         flowPath,
         state: nextStateName,
-        kbUsed: (resolvedNextConfig.kb?.enabled ?? false) && (contextWithKb.kbChunks?.length ?? 0) > 0,
+        kbUsed:
+          (resolvedNextConfig.kbV2?.md?.enabled ??
+            resolvedNextConfig.kb?.enabled ??
+            false) &&
+          (contextWithKb.kbChunks?.length ?? 0) > 0,
         kbChunks: contextWithKb.kbChunks?.length,
       };
       return {
@@ -230,7 +305,25 @@ async function executeFSMFlow(
 
   if (stateConfig.agent) {
     const contextWithKb: AgentContext = { ...params.context };
-    if (stateConfig.kb?.enabled) {
+    if (stateConfig.kbV2?.md?.enabled) {
+      try {
+        const topK = stateConfig.kbV2.md.topK ?? 4;
+        const mdResults = await searchChunks({
+          sessionId: params.turn.sessionId,
+          query: params.turn.text,
+          slugs: stateConfig.kbV2.md.slugs,
+          limit: topK,
+        });
+        if (mdResults.length > 0) {
+          contextWithKb.kbChunks = mdResults.map((r) => ({
+            text: r.text,
+            source: r.slug,
+          }));
+        }
+      } catch {
+        // continue without KB
+      }
+    } else if (stateConfig.kb?.enabled) {
       try {
         const chunks = await loadKB(params.turn.sessionId);
         const retrieved = retrieveChunks(
@@ -239,12 +332,19 @@ async function executeFSMFlow(
           stateConfig.kb.topK ?? 4
         );
         if (retrieved.length > 0) {
-          contextWithKb.kbChunks = retrieved.map((c) => ({ text: c.text, source: c.source }));
+          contextWithKb.kbChunks = retrieved.map((c) => ({
+            text: c.text,
+            source: c.source,
+          }));
         }
       } catch {
         // continue without KB
       }
     }
+    const kbConfig = {
+      md: !!stateConfig.kbV2?.md?.enabled,
+      tables: !!stateConfig.kbV2?.tables?.enabled,
+    };
     const agent = getAgent(stateConfig.agent);
     const agentRun = await executeAgentRun({
       turnId: params.turn._id!,
@@ -252,6 +352,7 @@ async function executeFSMFlow(
       turn: params.turn,
       context: contextWithKb,
       agent,
+      kbConfig,
     });
     const nextState = stateConfig.transitions
       ? resolveTransition(stateConfig, params.turn.text)
@@ -264,7 +365,9 @@ async function executeFSMFlow(
       mode: "fsm",
       flowPath,
       state: currentStateName,
-      kbUsed: (stateConfig.kb?.enabled ?? false) && (contextWithKb.kbChunks?.length ?? 0) > 0,
+      kbUsed:
+        (stateConfig.kbV2?.md?.enabled ?? stateConfig.kb?.enabled ?? false) &&
+        (contextWithKb.kbChunks?.length ?? 0) > 0,
       kbChunks: contextWithKb.kbChunks?.length,
     };
     return {
@@ -288,21 +391,31 @@ function resolveTransition(
   for (const t of transitions) {
     const m = t.match as Record<string, unknown>;
     if (m?.any === true) return t.next;
-    if (typeof m?.keyword === "string" && lower.includes((m.keyword as string).toLowerCase()))
+    if (
+      typeof m?.keyword === "string" &&
+      lower.includes((m.keyword as string).toLowerCase())
+    )
       return t.next;
   }
-  const defaultTransition = transitions.find((t) => (t.match as Record<string, unknown>)?.default === true);
+  const defaultTransition = transitions.find(
+    (t) => (t.match as Record<string, unknown>)?.default === true
+  );
   return defaultTransition?.next ?? null;
 }
 
 function resolveKeywordRouter(
-  router: { routes: Array<{ keyword?: string; default?: boolean; next: string }> },
+  router: {
+    routes: Array<{ keyword?: string; default?: boolean; next: string }>;
+  },
   text: string
 ): string | null {
   const lower = text.toLowerCase().trim();
   for (const route of router.routes) {
     if (route.default === true) continue;
-    if (typeof route.keyword === "string" && lower.includes(route.keyword.toLowerCase()))
+    if (
+      typeof route.keyword === "string" &&
+      lower.includes(route.keyword.toLowerCase())
+    )
       return route.next;
   }
   const defaultRoute = router.routes.find((r) => r.default === true);

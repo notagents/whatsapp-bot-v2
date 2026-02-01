@@ -1,0 +1,321 @@
+{
+  "mode": "fsm",
+  "initialState": "START",
+  "states": {
+    "START": {
+      "reply": "Hola! Soy Cami de Astro, en que te ayudo?",
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          { "keyword": "hola cami", "next": "SALUDO_HOLA_CAMI" },
+          { "keyword": "hola", "next": "SALUDO_HOLA" },
+
+          { "keyword": "pedido", "next": "ESCALATE" },
+          { "keyword": "orden", "next": "ESCALATE" },
+          { "keyword": "pago", "next": "ESCALATE" },
+          { "keyword": "garantia", "next": "ESCALATE" },
+          { "keyword": "mayorista", "next": "ESCALATE" },
+          { "keyword": "reventa", "next": "ESCALATE" },
+          { "keyword": "factura a", "next": "ESCALATE" },
+
+          { "keyword": "bondi", "next": "OFFTOPIC" },
+          { "keyword": "colectivo", "next": "OFFTOPIC" },
+          { "keyword": "subte", "next": "OFFTOPIC" },
+          { "keyword": "clima", "next": "OFFTOPIC" },
+          { "keyword": "politica", "next": "OFFTOPIC" },
+
+          { "keyword": "semilla", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "semillas", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "genetica", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "cepa", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "strain", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "fem", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "indica", "next": "CAT1_SEMILLAS_P1" },
+          { "keyword": "sativa", "next": "CAT1_SEMILLAS_P1" },
+
+          { "keyword": "sustrato", "next": "CAT2_SUSTRATOS" },
+          { "keyword": "tierra", "next": "CAT2_SUSTRATOS" },
+          { "keyword": "coco", "next": "CAT2_SUSTRATOS" },
+          { "keyword": "perlita", "next": "CAT2_SUSTRATOS" },
+          { "keyword": "turba", "next": "CAT2_SUSTRATOS" },
+          { "keyword": "vermiculita", "next": "CAT2_SUSTRATOS" },
+
+          { "keyword": "fertilizante", "next": "CAT3_FERTILIZANTES" },
+          { "keyword": "nutriente", "next": "CAT3_FERTILIZANTES" },
+          { "keyword": "abono", "next": "CAT3_FERTILIZANTES" },
+          { "keyword": "flora", "next": "CAT3_FERTILIZANTES" },
+          { "keyword": "vege", "next": "CAT3_FERTILIZANTES" },
+          { "keyword": "tripack", "next": "CAT3_FERTILIZANTES" },
+
+          { "keyword": "luz", "next": "CAT4_ILUMINACION" },
+          { "keyword": "led", "next": "CAT4_ILUMINACION" },
+          { "keyword": "panel", "next": "CAT4_ILUMINACION" },
+          { "keyword": "galponera", "next": "CAT4_ILUMINACION" },
+          { "keyword": "balastro", "next": "CAT4_ILUMINACION" },
+          { "keyword": "quantum", "next": "CAT4_ILUMINACION" },
+
+          { "keyword": "carpa", "next": "CAT5_CARPAS" },
+          { "keyword": "indoor", "next": "CAT5_CARPAS" },
+          { "keyword": "armario", "next": "CAT5_CARPAS" },
+          { "keyword": "grow tent", "next": "CAT5_CARPAS" },
+
+          { "keyword": "extractor", "next": "CAT6_VENTILACION" },
+          { "keyword": "ventilacion", "next": "CAT6_VENTILACION" },
+          { "keyword": "filtro olor", "next": "CAT6_VENTILACION" },
+          { "keyword": "carbon activado", "next": "CAT6_VENTILACION" },
+
+          { "keyword": "plaga", "next": "CAT7_PLAGAS" },
+          { "keyword": "neem", "next": "CAT7_PLAGAS" },
+          { "keyword": "arana roja", "next": "CAT7_PLAGAS" },
+          { "keyword": "trips", "next": "CAT7_PLAGAS" },
+          { "keyword": "fungicida", "next": "CAT7_PLAGAS" },
+          { "keyword": "insecticida", "next": "CAT7_PLAGAS" },
+
+          { "keyword": "maceta", "next": "CAT8_ACCESORIOS" },
+          { "keyword": "ph", "next": "CAT8_ACCESORIOS" },
+          { "keyword": "tijera", "next": "CAT8_ACCESORIOS" },
+          { "keyword": "timer", "next": "CAT8_ACCESORIOS" },
+          { "keyword": "termometro", "next": "CAT8_ACCESORIOS" },
+
+          { "keyword": "empezar", "next": "CAT9_SETUP" },
+          { "keyword": "primera vez", "next": "CAT9_SETUP" },
+          { "keyword": "kit", "next": "CAT9_SETUP" },
+          { "keyword": "que necesito", "next": "CAT9_SETUP" },
+          { "keyword": "setup", "next": "CAT9_SETUP" },
+
+          { "keyword": "hojas amarillas", "next": "CAT11_ASESORAMIENTO" },
+          { "keyword": "mi planta", "next": "CAT11_ASESORAMIENTO" },
+          { "keyword": "problema", "next": "CAT11_ASESORAMIENTO" },
+
+          { "keyword": "vaporizador", "next": "CAT12_VAPOS" },
+          { "keyword": "vapo", "next": "CAT12_VAPOS" },
+          { "keyword": "vape", "next": "CAT12_VAPOS" },
+
+          { "keyword": "direccion", "next": "INFO_KB" },
+          { "keyword": "direccion del local", "next": "INFO_KB" },
+          { "keyword": "donde quedan", "next": "INFO_KB" },
+          { "keyword": "ubicacion", "next": "INFO_KB" },
+          { "keyword": "donde estan", "next": "INFO_KB" },
+          { "keyword": "la plata", "next": "INFO_KB" },
+          { "keyword": "plaza malvinas", "next": "INFO_KB" },
+          { "keyword": "mapa", "next": "INFO_KB" },
+          { "keyword": "maps", "next": "INFO_KB" },
+          { "keyword": "como llego", "next": "INFO_KB" },
+
+          { "keyword": "horarios", "next": "INFO_KB" },
+          { "keyword": "horario", "next": "INFO_KB" },
+          { "keyword": "abren", "next": "INFO_KB" },
+          { "keyword": "cierran", "next": "INFO_KB" },
+          { "keyword": "atienden", "next": "INFO_KB" },
+          { "keyword": "cuando abren", "next": "INFO_KB" },
+
+          { "keyword": "envio", "next": "INFO_KB" },
+          { "keyword": "envios", "next": "INFO_KB" },
+          { "keyword": "envian", "next": "INFO_KB" },
+          { "keyword": "costo de envio", "next": "INFO_KB" },
+          { "keyword": "codigo postal", "next": "INFO_KB" },
+          { "keyword": "cp", "next": "INFO_KB" },
+          { "keyword": "oca", "next": "INFO_KB" },
+
+          { "keyword": "retiro en local", "next": "INFO_KB" },
+          { "keyword": "retiro", "next": "INFO_KB" },
+          { "keyword": "voy a buscar", "next": "INFO_KB" },
+          { "keyword": "paso a buscar", "next": "INFO_KB" },
+
+          { "keyword": "cuotas", "next": "INFO_KB" },
+          { "keyword": "transferencia", "next": "INFO_KB" },
+          { "keyword": "efectivo", "next": "INFO_KB" },
+          { "keyword": "descuento", "next": "INFO_KB" },
+          { "keyword": "como pago", "next": "INFO_KB" },
+          { "keyword": "metodos de pago", "next": "INFO_KB" },
+
+          { "keyword": "tienda fisica", "next": "INFO_KB" },
+          { "keyword": "tienen local", "next": "INFO_KB" },
+          { "keyword": "puedo ir a ver", "next": "INFO_KB" },
+          { "keyword": "ir a ver productos", "next": "INFO_KB" },
+          { "keyword": "solo online", "next": "INFO_KB" },
+
+          { "keyword": "garantia", "next": "INFO_KB" },
+          { "keyword": "devolucion", "next": "INFO_KB" },
+          { "keyword": "devoluciones", "next": "INFO_KB" },
+
+          { "keyword": "como hago un pedido", "next": "INFO_KB" },
+          { "keyword": "hacer pedido", "next": "INFO_KB" },
+          { "keyword": "como compro", "next": "INFO_KB" },
+
+          { "default": true, "next": "NO_CLARO" }
+        ]
+      }
+    },
+
+    "SALUDO_HOLA_CAMI": {
+      "reply": "Hola! En que puedo ayudarte con Astro Grow hoy?",
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "SALUDO_HOLA": {
+      "reply": "Hola! Aqui Cami de Astro! En que puedo ayudarte hoy?",
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "OFFTOPIC": {
+      "reply": "Perdon, con eso no te puedo ayudar por aca. Que necesitas ver de cultivo o productos de Astro Grow hoy?",
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "ESCALATE": {
+      "reply": "Dale, con eso te ayuda mejor alguien del equipo. Me decis tu numero de orden o algun dato del pedido?",
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "NO_CLARO": {
+      "reply": "Perdon, no llegue a entender bien. Me contas que estas buscando?",
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "CAT1_SEMILLAS_P1": {
+      "reply": "Dale, para ayudarte bien primero necesito esto. Vas a cultivar en interior o exterior?",
+      "transitions": [
+        { "match": { "any": true }, "next": "CAT1_SEMILLAS_P1_ROUTER" }
+      ]
+    },
+
+    "CAT1_SEMILLAS_P1_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          { "keyword": "interior", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "indoor", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "carpa", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "placard", "next": "CAT1_SEMILLAS_P2" },
+
+          { "keyword": "exterior", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "afuera", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "balcon", "next": "CAT1_SEMILLAS_P2" },
+          { "keyword": "patio", "next": "CAT1_SEMILLAS_P2" },
+
+          { "default": true, "next": "CAT1_SEMILLAS_P1_REPEAT" }
+        ]
+      }
+    },
+
+    "CAT1_SEMILLAS_P1_REPEAT": {
+      "reply": "Perfecto, para ubicarte bien necesito una cosa. Es interior o exterior?",
+      "transitions": [
+        { "match": { "any": true }, "next": "CAT1_SEMILLAS_P1_ROUTER" }
+      ]
+    },
+
+    "CAT1_SEMILLAS_P2": {
+      "reply": "Genial. Las automaticas florecen solas por tiempo, las fotoperiodicas dependen de las horas de luz. Cual preferis, automatica o fotoperiodica?",
+      "transitions": [
+        { "match": { "any": true }, "next": "CAT1_SEMILLAS_P2_ROUTER" }
+      ]
+    },
+
+    "CAT1_SEMILLAS_P2_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          { "keyword": "auto", "next": "CAT1_SEMILLAS_RECOMMEND" },
+          { "keyword": "automatica", "next": "CAT1_SEMILLAS_RECOMMEND" },
+          { "keyword": "autofloreciente", "next": "CAT1_SEMILLAS_RECOMMEND" },
+
+          { "keyword": "foto", "next": "CAT1_SEMILLAS_RECOMMEND" },
+          { "keyword": "fotoperiodica", "next": "CAT1_SEMILLAS_RECOMMEND" },
+          { "keyword": "fotoperiodo", "next": "CAT1_SEMILLAS_RECOMMEND" },
+
+          { "keyword": "no se", "next": "CAT1_SEMILLAS_RECOMMEND" },
+          { "default": true, "next": "CAT1_SEMILLAS_P2_REPEAT" }
+        ]
+      }
+    },
+
+    "CAT1_SEMILLAS_P2_REPEAT": {
+      "reply": "Dale, asi te recomiendo bien. Preferis automatica o fotoperiodica?",
+      "transitions": [
+        { "match": { "any": true }, "next": "CAT1_SEMILLAS_P2_ROUTER" }
+      ]
+    },
+
+    "CAT1_SEMILLAS_RECOMMEND": {
+      "agent": "cami_recommender",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT2_SUSTRATOS": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT3_FERTILIZANTES": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT4_ILUMINACION": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT5_CARPAS": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT6_VENTILACION": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT7_PLAGAS": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT8_ACCESORIOS": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT9_SETUP": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT11_ASESORAMIENTO": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "CAT12_VAPOS": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "INFO_KB": {
+      "agent": "cami_default",
+      "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "END" }]
+    },
+
+    "END": {
+      "end": true
+    }
+  }
+}
