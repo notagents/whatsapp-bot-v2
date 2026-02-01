@@ -201,16 +201,42 @@ async function executeFSMFlow(
   }
 
   if (stateConfig.router) {
-    let nextStateName =
-      resolveKeywordRouter(stateConfig.router, params.turn.text) ??
-      config.initialState;
-    const nextStateConfig = states[nextStateName];
-    if (nextStateConfig?.reply && nextStateName === entryState) {
-      const defaultRoute = stateConfig.router.routes.find(
-        (r) => r.default === true
+    let nextStateName: string;
+    let aiClassificationResult: {
+      selectedRoute: string;
+      confidence: number;
+      reasoning: string;
+      routerType: "ai" | "keyword";
+    } | null = null;
+    if (stateConfig.router.type === "ai") {
+      const { classifyWithAIWithResult } = await import("./ai-classifier");
+      const { nextState, result } = await classifyWithAIWithResult(
+        stateConfig.router,
+        params.turn.text,
+        params.context,
+        currentStateName
       );
-      if (defaultRoute) {
-        nextStateName = defaultRoute.next;
+      nextStateName = nextState ?? config.initialState;
+      if (result) {
+        aiClassificationResult = {
+          selectedRoute: result.selectedRoute,
+          confidence: result.confidence,
+          reasoning: result.reasoning,
+          routerType: "ai",
+        };
+      }
+    } else {
+      nextStateName =
+        resolveKeywordRouter(stateConfig.router, params.turn.text) ??
+        config.initialState;
+      const nextStateConfig = states[nextStateName];
+      if (nextStateConfig?.reply && nextStateName === entryState) {
+        const defaultRoute = stateConfig.router.routes.find(
+          (r) => r.default === true
+        );
+        if (defaultRoute) {
+          nextStateName = defaultRoute.next;
+        }
       }
     }
     await setConversationState(params.turn.whatsappId, {
@@ -232,9 +258,18 @@ async function executeFSMFlow(
       if (resolvedNextConfig.kbV2?.md?.enabled) {
         try {
           const topK = resolvedNextConfig.kbV2.md.topK ?? 4;
+          let kbQuery = params.turn.text;
+          if (
+            nextStateName === "INFO_KB" &&
+            /donde|queda|ubicacion|direccion|local|dirección|mapa|llegar|dirección del local/i.test(
+              params.turn.text
+            )
+          ) {
+            kbQuery = `${params.turn.text} direccion ubicacion local`;
+          }
           const mdResults = await searchChunks({
             sessionId: params.turn.sessionId,
-            query: params.turn.text,
+            query: kbQuery,
             slugs: resolvedNextConfig.kbV2.md.slugs,
             limit: topK,
           });
@@ -276,6 +311,9 @@ async function executeFSMFlow(
         context: contextWithKb,
         agent,
         kbConfig,
+        ...(aiClassificationResult && {
+          aiClassification: aiClassificationResult,
+        }),
       });
       const transitionNext = resolvedNextConfig.transitions
         ? resolveTransition(resolvedNextConfig, params.turn.text)

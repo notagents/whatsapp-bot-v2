@@ -12,12 +12,19 @@ export type ExecuteAgentRunParams = {
   context: AgentRunParams["context"];
   agent: Agent;
   kbConfig?: KbToolConfig;
+  aiClassification?: {
+    selectedRoute: string;
+    confidence: number;
+    reasoning: string;
+    routerType: "ai" | "keyword";
+  };
 };
 
 export async function executeAgentRun(
   params: ExecuteAgentRunParams
 ): Promise<AgentRun> {
-  const { turnId, agentId, turn, context, agent, kbConfig } = params;
+  const { turnId, agentId, turn, context, agent, kbConfig, aiClassification } =
+    params;
   const db = await getDb();
   const tools = createToolSet(turn.whatsappId, turn.sessionId, kbConfig);
   const runParams: AgentRunParams = {
@@ -78,6 +85,7 @@ export async function executeAgentRun(
           assistantText: agentResult.assistantText,
           toolCalls: agentResult.toolCalls,
           ...(agentResult.kbUsage && { kbUsage: agentResult.kbUsage }),
+          ...(aiClassification && { aiClassification }),
         },
       },
     }

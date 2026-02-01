@@ -108,6 +108,12 @@ export type AgentRunOutput = {
     mdChunks?: Array<{ docId?: string; chunkId: string; slug: string }>;
     tableRows?: Array<{ tableKey: string; pk: string }>;
   };
+  aiClassification?: {
+    selectedRoute: string;
+    confidence: number;
+    reasoning: string;
+    routerType: "ai" | "keyword";
+  };
 };
 
 export type AgentRun = {

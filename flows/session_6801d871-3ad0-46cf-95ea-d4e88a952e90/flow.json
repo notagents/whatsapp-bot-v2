@@ -9,146 +9,226 @@
 
     "ROUTER": {
       "router": {
-        "type": "keyword",
+        "type": "ai",
+        "model": "gpt-4o-mini",
+        "temperature": 0.3,
         "routes": [
-          { "keyword": "hola cami", "next": "SALUDO_HOLA_CAMI" },
-          { "keyword": "hola", "next": "SALUDO_HOLA" },
-
-          { "keyword": "pedido", "next": "ESCALATE" },
-          { "keyword": "orden", "next": "ESCALATE" },
-          { "keyword": "pago", "next": "ESCALATE" },
-          { "keyword": "garantia", "next": "ESCALATE" },
-          { "keyword": "mayorista", "next": "ESCALATE" },
-          { "keyword": "reventa", "next": "ESCALATE" },
-          { "keyword": "factura a", "next": "ESCALATE" },
-
-          { "keyword": "bondi", "next": "OFFTOPIC" },
-          { "keyword": "colectivo", "next": "OFFTOPIC" },
-          { "keyword": "subte", "next": "OFFTOPIC" },
-          { "keyword": "clima", "next": "OFFTOPIC" },
-          { "keyword": "politica", "next": "OFFTOPIC" },
-
-          { "keyword": "semilla", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "semillas", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "genetica", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "cepa", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "strain", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "fem", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "indica", "next": "CAT1_SEMILLAS_P1" },
-          { "keyword": "sativa", "next": "CAT1_SEMILLAS_P1" },
-
-          { "keyword": "sustrato", "next": "CAT2_SUSTRATOS" },
-          { "keyword": "tierra", "next": "CAT2_SUSTRATOS" },
-          { "keyword": "coco", "next": "CAT2_SUSTRATOS" },
-          { "keyword": "perlita", "next": "CAT2_SUSTRATOS" },
-          { "keyword": "turba", "next": "CAT2_SUSTRATOS" },
-          { "keyword": "vermiculita", "next": "CAT2_SUSTRATOS" },
-
-          { "keyword": "fertilizante", "next": "CAT3_FERTILIZANTES" },
-          { "keyword": "nutriente", "next": "CAT3_FERTILIZANTES" },
-          { "keyword": "abono", "next": "CAT3_FERTILIZANTES" },
-          { "keyword": "flora", "next": "CAT3_FERTILIZANTES" },
-          { "keyword": "vege", "next": "CAT3_FERTILIZANTES" },
-          { "keyword": "tripack", "next": "CAT3_FERTILIZANTES" },
-
-          { "keyword": "luz", "next": "CAT4_ILUMINACION" },
-          { "keyword": "led", "next": "CAT4_ILUMINACION" },
-          { "keyword": "panel", "next": "CAT4_ILUMINACION" },
-          { "keyword": "galponera", "next": "CAT4_ILUMINACION" },
-          { "keyword": "balastro", "next": "CAT4_ILUMINACION" },
-          { "keyword": "quantum", "next": "CAT4_ILUMINACION" },
-
-          { "keyword": "carpa", "next": "CAT5_CARPAS" },
-          { "keyword": "indoor", "next": "CAT5_CARPAS" },
-          { "keyword": "armario", "next": "CAT5_CARPAS" },
-          { "keyword": "grow tent", "next": "CAT5_CARPAS" },
-
-          { "keyword": "extractor", "next": "CAT6_VENTILACION" },
-          { "keyword": "ventilacion", "next": "CAT6_VENTILACION" },
-          { "keyword": "filtro olor", "next": "CAT6_VENTILACION" },
-          { "keyword": "carbon activado", "next": "CAT6_VENTILACION" },
-
-          { "keyword": "plaga", "next": "CAT7_PLAGAS" },
-          { "keyword": "neem", "next": "CAT7_PLAGAS" },
-          { "keyword": "arana roja", "next": "CAT7_PLAGAS" },
-          { "keyword": "trips", "next": "CAT7_PLAGAS" },
-          { "keyword": "fungicida", "next": "CAT7_PLAGAS" },
-          { "keyword": "insecticida", "next": "CAT7_PLAGAS" },
-
-          { "keyword": "maceta", "next": "CAT8_ACCESORIOS" },
-          { "keyword": "ph", "next": "CAT8_ACCESORIOS" },
-          { "keyword": "tijera", "next": "CAT8_ACCESORIOS" },
-          { "keyword": "timer", "next": "CAT8_ACCESORIOS" },
-          { "keyword": "termometro", "next": "CAT8_ACCESORIOS" },
-
-          { "keyword": "empezar", "next": "CAT9_SETUP" },
-          { "keyword": "primera vez", "next": "CAT9_SETUP" },
-          { "keyword": "kit", "next": "CAT9_SETUP" },
-          { "keyword": "que necesito", "next": "CAT9_SETUP" },
-          { "keyword": "setup", "next": "CAT9_SETUP" },
-
-          { "keyword": "hojas amarillas", "next": "CAT11_ASESORAMIENTO" },
-          { "keyword": "mi planta", "next": "CAT11_ASESORAMIENTO" },
-          { "keyword": "problema", "next": "CAT11_ASESORAMIENTO" },
-
-          { "keyword": "vaporizador", "next": "CAT12_VAPOS" },
-          { "keyword": "vapo", "next": "CAT12_VAPOS" },
-          { "keyword": "vape", "next": "CAT12_VAPOS" },
-
-          { "keyword": "direccion", "next": "INFO_KB" },
-          { "keyword": "direccion del local", "next": "INFO_KB" },
-          { "keyword": "donde quedan", "next": "INFO_KB" },
-          { "keyword": "ubicacion", "next": "INFO_KB" },
-          { "keyword": "donde estan", "next": "INFO_KB" },
-          { "keyword": "la plata", "next": "INFO_KB" },
-          { "keyword": "plaza malvinas", "next": "INFO_KB" },
-          { "keyword": "mapa", "next": "INFO_KB" },
-          { "keyword": "maps", "next": "INFO_KB" },
-          { "keyword": "como llego", "next": "INFO_KB" },
-
-          { "keyword": "horarios", "next": "INFO_KB" },
-          { "keyword": "horario", "next": "INFO_KB" },
-          { "keyword": "abren", "next": "INFO_KB" },
-          { "keyword": "cierran", "next": "INFO_KB" },
-          { "keyword": "atienden", "next": "INFO_KB" },
-          { "keyword": "cuando abren", "next": "INFO_KB" },
-
-          { "keyword": "envio", "next": "INFO_KB" },
-          { "keyword": "envios", "next": "INFO_KB" },
-          { "keyword": "envian", "next": "INFO_KB" },
-          { "keyword": "costo de envio", "next": "INFO_KB" },
-          { "keyword": "codigo postal", "next": "INFO_KB" },
-          { "keyword": "cp", "next": "INFO_KB" },
-          { "keyword": "oca", "next": "INFO_KB" },
-
-          { "keyword": "retiro en local", "next": "INFO_KB" },
-          { "keyword": "retiro", "next": "INFO_KB" },
-          { "keyword": "voy a buscar", "next": "INFO_KB" },
-          { "keyword": "paso a buscar", "next": "INFO_KB" },
-
-          { "keyword": "cuotas", "next": "INFO_KB" },
-          { "keyword": "transferencia", "next": "INFO_KB" },
-          { "keyword": "efectivo", "next": "INFO_KB" },
-          { "keyword": "descuento", "next": "INFO_KB" },
-          { "keyword": "como pago", "next": "INFO_KB" },
-          { "keyword": "metodos de pago", "next": "INFO_KB" },
-
-          { "keyword": "tienda fisica", "next": "INFO_KB" },
-          { "keyword": "tienen local", "next": "INFO_KB" },
-          { "keyword": "puedo ir a ver", "next": "INFO_KB" },
-          { "keyword": "ir a ver productos", "next": "INFO_KB" },
-          { "keyword": "solo online", "next": "INFO_KB" },
-
-          { "keyword": "garantia", "next": "INFO_KB" },
-          { "keyword": "devolucion", "next": "INFO_KB" },
-          { "keyword": "devoluciones", "next": "INFO_KB" },
-
-          { "keyword": "como hago un pedido", "next": "INFO_KB" },
-          { "keyword": "hacer pedido", "next": "INFO_KB" },
-          { "keyword": "como compro", "next": "INFO_KB" },
-
-          { "default": true, "next": "NO_CLARO" }
-        ]
+          {
+            "next": "SALUDO_HOLA_CAMI",
+            "description": "Usuario saluda específicamente a 'Cami'",
+            "examples": ["hola cami", "buenas cami"]
+          },
+          {
+            "next": "SALUDO_HOLA",
+            "description": "Saludo general del usuario",
+            "examples": ["hola", "buenos días", "buenas"]
+          },
+          {
+            "next": "ESCALATE",
+            "name": "Escalamiento a humano",
+            "description": "Consultas que requieren intervención humana: estado o seguimiento de pedido, reclamos, pago no acreditado, mayoristas, reventa, factura A, garantía compleja (reclamo vapo/semillas)",
+            "examples": [
+              "donde esta mi pedido",
+              "numero de orden",
+              "no me acreditaron el pago",
+              "quiero hablar con alguien"
+            ],
+            "keywords": [
+              "estado del pedido",
+              "seguimiento",
+              "reclamo",
+              "mayorista",
+              "reventa",
+              "factura a"
+            ]
+          },
+          {
+            "next": "OFFTOPIC",
+            "description": "Temas off-topic no relacionados con el negocio (transporte público, clima, política)",
+            "keywords": ["bondi", "colectivo", "subte", "clima", "politica"]
+          },
+          {
+            "next": "CAT1_SEMILLAS_P1",
+            "name": "Semillas y Genéticas",
+            "description": "Consultas sobre semillas de cannabis, genéticas, cepas, strains, feminizadas, indica/sativa",
+            "examples": [
+              "quiero comprar semillas",
+              "que geneticas tienen",
+              "semillas feminizadas"
+            ],
+            "keywords": [
+              "semilla",
+              "genetica",
+              "cepa",
+              "strain",
+              "fem",
+              "indica",
+              "sativa"
+            ]
+          },
+          {
+            "next": "CAT2_SUSTRATOS",
+            "name": "Sustratos y Tierra",
+            "description": "Consultas sobre sustratos, tierra, coco, perlita, turba, vermiculita",
+            "keywords": [
+              "sustrato",
+              "tierra",
+              "coco",
+              "perlita",
+              "turba",
+              "vermiculita"
+            ]
+          },
+          {
+            "next": "CAT3_FERTILIZANTES",
+            "name": "Fertilizantes y Nutrientes",
+            "description": "Consultas sobre fertilizantes, nutrientes, abonos, productos flora/vege, tripacks",
+            "keywords": [
+              "fertilizante",
+              "nutriente",
+              "abono",
+              "flora",
+              "vege",
+              "tripack"
+            ]
+          },
+          {
+            "next": "CAT4_ILUMINACION",
+            "name": "Iluminación",
+            "description": "Consultas sobre luces de cultivo, LED, paneles, galponeras, balastros, quantum boards",
+            "keywords": [
+              "luz",
+              "led",
+              "panel",
+              "galponera",
+              "balastro",
+              "quantum"
+            ]
+          },
+          {
+            "next": "CAT5_CARPAS",
+            "name": "Carpas Indoor",
+            "description": "Consultas sobre carpas de cultivo, grow tents, armarios indoor",
+            "keywords": ["carpa", "indoor", "armario", "grow tent"]
+          },
+          {
+            "next": "CAT6_VENTILACION",
+            "name": "Ventilación",
+            "description": "Consultas sobre extractores, ventilación, filtros de olor, carbón activado",
+            "keywords": [
+              "extractor",
+              "ventilacion",
+              "filtro olor",
+              "carbon activado"
+            ]
+          },
+          {
+            "next": "CAT7_PLAGAS",
+            "name": "Control de Plagas",
+            "description": "Consultas sobre plagas, neem, araña roja, trips, fungicidas, insecticidas",
+            "keywords": [
+              "plaga",
+              "neem",
+              "arana roja",
+              "trips",
+              "fungicida",
+              "insecticida"
+            ]
+          },
+          {
+            "next": "CAT8_ACCESORIOS",
+            "name": "Accesorios de Cultivo",
+            "description": "Consultas sobre macetas, medidores de pH, tijeras, timers, termómetros",
+            "keywords": ["maceta", "ph", "tijera", "timer", "termometro"]
+          },
+          {
+            "next": "CAT9_SETUP",
+            "name": "Setup Inicial",
+            "description": "Usuarios principiantes que quieren empezar a cultivar por primera vez, buscan kits completos",
+            "examples": [
+              "quiero empezar a cultivar",
+              "primera vez cultivo",
+              "que necesito para empezar"
+            ],
+            "keywords": [
+              "empezar",
+              "primera vez",
+              "kit",
+              "que necesito",
+              "setup"
+            ]
+          },
+          {
+            "next": "CAT11_ASESORAMIENTO",
+            "name": "Asesoramiento Técnico",
+            "description": "Problemas con plantas existentes, hojas amarillas, diagnóstico de cultivo",
+            "examples": [
+              "mi planta tiene hojas amarillas",
+              "problema con el cultivo"
+            ],
+            "keywords": ["hojas amarillas", "mi planta", "problema"]
+          },
+          {
+            "next": "CAT12_VAPOS",
+            "name": "Vaporizadores",
+            "description": "Consultas sobre vaporizadores, vapes",
+            "keywords": ["vaporizador", "vapo", "vape"]
+          },
+          {
+            "next": "INFO_KB",
+            "name": "Información General",
+            "description": "Información institucional de la tienda: dirección, horarios, envíos, métodos de pago (cuotas, transferencia, efectivo), políticas de garantía y devolución, cómo hacer un pedido. No es reclamo ni estado de pedido.",
+            "examples": [
+              "donde están ubicados",
+              "que horario tienen",
+              "hacen envios",
+              "formas de pago",
+              "como pago",
+              "cuotas sin interes",
+              "como hago un pedido",
+              "politica de garantia"
+            ],
+            "keywords": [
+              "direccion",
+              "horarios",
+              "envio",
+              "pago",
+              "garantia",
+              "ubicacion",
+              "local",
+              "retiro",
+              "transferencia",
+              "cuotas"
+            ]
+          },
+          {
+            "next": "DESPEDIDA",
+            "name": "Despedida",
+            "description": "Usuario se despide, agradece, indica que no necesita nada mas o que la conversacion termina",
+            "examples": [
+              "gracias",
+              "chau",
+              "nos vemos",
+              "listo gracias",
+              "no necesito nada mas",
+              "perfecto gracias"
+            ],
+            "keywords": [
+              "gracias",
+              "chau",
+              "adios",
+              "hasta luego",
+              "nos vemos",
+              "listo",
+              "dale"
+            ]
+          },
+          {
+            "next": "NO_CLARO",
+            "description": "Fallback cuando no se puede clasificar con confianza el mensaje"
+          }
+        ],
+        "defaultRoute": "NO_CLARO"
       }
     },
 
@@ -311,6 +391,11 @@
     "INFO_KB": {
       "agent": "cami_default",
       "kbV2": { "md": { "enabled": true, "topK": 4 } },
+      "transitions": [{ "match": { "any": true }, "next": "ROUTER" }]
+    },
+
+    "DESPEDIDA": {
+      "reply": "De nada! Cualquier cosa escribime. Buen dia!",
       "transitions": [{ "match": { "any": true }, "next": "END" }]
     },
 

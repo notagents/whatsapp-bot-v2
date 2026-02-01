@@ -19,10 +19,22 @@ type KbUsage = {
   tableRows?: Array<{ tableKey: string; pk: string }>;
 };
 
+type AiClassification = {
+  selectedRoute: string;
+  confidence: number;
+  reasoning: string;
+  routerType: "ai" | "keyword";
+};
+
 type AgentRun = {
   _id: string;
   startedAt?: number;
-  output?: { assistantText?: string; toolCalls?: unknown[]; kbUsage?: KbUsage };
+  output?: {
+    assistantText?: string;
+    toolCalls?: unknown[];
+    kbUsage?: KbUsage;
+    aiClassification?: AiClassification;
+  };
 };
 
 type TurnsResponse = { turns: Turn[] };
@@ -187,6 +199,34 @@ export function SimulatorDebugPanel({
             )}
           </CardContent>
         </Card>
+        {lastAgentRun?.output?.aiClassification && (
+          <Card>
+            <CardHeader className="py-2">
+              <CardTitle className="text-sm">AI Classification</CardTitle>
+            </CardHeader>
+            <CardContent className="py-2 text-sm space-y-2">
+              <p className="font-mono text-xs">
+                Route: {lastAgentRun.output.aiClassification.selectedRoute}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Confidence:{" "}
+                {(
+                  lastAgentRun.output.aiClassification.confidence * 100
+                ).toFixed(0)}
+                %
+              </p>
+              <p
+                className="text-muted-foreground text-xs line-clamp-2"
+                title={lastAgentRun.output.aiClassification.reasoning}
+              >
+                {lastAgentRun.output.aiClassification.reasoning}
+              </p>
+              <p className="text-muted-foreground text-xs">
+                Type: {lastAgentRun.output.aiClassification.routerType}
+              </p>
+            </CardContent>
+          </Card>
+        )}
         {lastAgentRun?.output?.kbUsage && (
           <Card>
             <CardHeader className="py-2">

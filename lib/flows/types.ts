@@ -50,10 +50,31 @@ const keywordRouteSchema = z.object({
   next: z.string(),
 });
 
-const routerSchema = z.object({
+const aiRouteSchema = z.object({
+  next: z.string(),
+  name: z.string().optional(),
+  description: z.string(),
+  examples: z.array(z.string()).optional(),
+  keywords: z.array(z.string()).optional(),
+});
+
+const keywordRouterSchema = z.object({
   type: z.literal("keyword"),
   routes: z.array(keywordRouteSchema),
 });
+
+const aiRouterSchema = z.object({
+  type: z.literal("ai"),
+  model: z.enum(["gpt-4o-mini", "gpt-4o"]).default("gpt-4o-mini"),
+  temperature: z.number().min(0).max(1).default(0.3),
+  routes: z.array(aiRouteSchema),
+  defaultRoute: z.string().optional(),
+});
+
+const routerSchema = z.discriminatedUnion("type", [
+  keywordRouterSchema,
+  aiRouterSchema,
+]);
 
 const fsmStateSchema = z.object({
   reply: z.string().optional(),
@@ -86,6 +107,9 @@ export type SimpleFlowConfig = z.infer<typeof simpleFlowSchema>;
 export type TransitionMatch = z.infer<typeof transitionMatchSchema>;
 export type Transition = z.infer<typeof transitionSchema>;
 export type KeywordRoute = z.infer<typeof keywordRouteSchema>;
+export type AIRoute = z.infer<typeof aiRouteSchema>;
+export type KeywordRouterConfig = z.infer<typeof keywordRouterSchema>;
+export type AIRouterConfig = z.infer<typeof aiRouterSchema>;
 export type FSMRouterConfig = z.infer<typeof routerSchema>;
 export type FSMStateConfig = z.infer<typeof fsmStateSchema>;
 export type FSMFlowConfig = z.infer<typeof fsmFlowSchema>;
