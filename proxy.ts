@@ -17,7 +17,7 @@ export async function proxy(request: NextRequest) {
   if (isAuthRequired()) {
     const loginPath = "/login";
     const pathname = request.nextUrl.pathname;
-    if (pathname !== loginPath && !pathname.startsWith("/api/auth")) {
+    if (pathname !== loginPath && !pathname.startsWith("/api/")) {
       const cookieName = sessionCookieName();
       const cookieValue = request.cookies.get(cookieName)?.value;
       const valid = await validateSession(cookieValue);
