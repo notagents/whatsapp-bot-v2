@@ -2,13 +2,13 @@ This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-
 
 ## WhatsApp Engine (Fase 2)
 
-- **Webhook** `POST /api/whatsapp/webhook`: recibe mensajes de Baileys, guarda con `processed: false`, encola job `debounceTurn` (15s). Si el mensaje es `fromMe` (humano), activa cooldown de 2h.
+- **Webhook** `POST /api/whatsapp/webhook`: recibe mensajes de Baileys, guarda con `processed: false`, encola job `debounceTurn` (15s). Si el mensaje es `fromMe` (humano), activa cooldown de 2h. Si `BAILEYS_API_KEY` está definida, solo acepta requests con `Authorization: Bearer <BAILEYS_API_KEY>` o `X-API-Key: <BAILEYS_API_KEY>`.
 - **Jobs (MongoDB polling)**: `debounceTurn` → consolida mensajes en un turn → `runAgent` → router + agente OpenAI → `sendReply` (si respuestas habilitadas) y `memoryUpdate` (facts + recap).
 - **Modo humano**: `GET/POST /api/conversations/[whatsappId]/responses-enabled` para habilitar/deshabilitar respuestas automáticas y cooldown (`disabledUntilUTC`).
 - **Worker**: local `npm run worker` (tsx) o Vercel Cron `GET /api/cron/jobs` (header `Authorization: Bearer CRON_SECRET`). Cron procesa hasta 10 jobs por invocación.
 - **Debug**: `GET /api/conversations/[whatsappId]/turns?limit=50`, `GET /api/turns/[turnId]`, `GET /api/agent-runs/[runId]`.
 
-Env: `MONGODB_URI`, `MONGODB_DB_NAME`, `BAILEYS_API_URL`, `BAILEYS_API_KEY`, `OPENAI_API_KEY`, `CRON_SECRET` (opcional, para cron). Login (opcional): `LOGIN_USERNAME` y `LOGIN_PASSWORD`; si están definidos, la app exige login en `/login`.
+Env: `MONGODB_URI`, `MONGODB_DB_NAME`, `BAILEYS_API_URL`, `BAILEYS_API_KEY` (envío a Baileys y validación del webhook; Baileys debe enviar esta cabecera al llamar al webhook), `OPENAI_API_KEY`, `CRON_SECRET` (opcional, para cron). Login (opcional): `LOGIN_USERNAME` y `LOGIN_PASSWORD`; si están definidos, la app exige login en `/login`.
 
 ## Getting Started
 

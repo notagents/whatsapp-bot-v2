@@ -51,6 +51,14 @@ function normalizeMessagesArray(
 }
 
 export async function POST(request: NextRequest) {
+  const apiKey = process.env.BAILEYS_API_KEY;
+  if (apiKey) {
+    const authHeader = request.headers.get("authorization");
+    const xApiKey = request.headers.get("x-api-key");
+    if (authHeader !== `Bearer ${apiKey}` && xApiKey !== apiKey) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+  }
   try {
     const body = (await request.json()) as WebhookBody;
     const sessionId = body.sessionId ?? "default";
