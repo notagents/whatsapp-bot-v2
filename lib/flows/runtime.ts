@@ -1,6 +1,7 @@
 import type { ObjectId } from "mongodb";
 import type { Turn } from "@/lib/models";
 import type { Context } from "@/lib/context";
+import type { AgentContext } from "@/lib/agents/types";
 import type { AgentRun } from "@/lib/models";
 import type { ResolvedFlow, SimpleFlowConfig } from "./types";
 import { resolveFlow } from "./registry";
@@ -50,7 +51,7 @@ async function executeSimpleFlow(
   let kbUsed = false;
   let kbChunksCount = 0;
 
-  const contextWithKb = { ...context };
+  const contextWithKb: AgentContext = { ...context };
   if (config.kb?.enabled) {
     try {
       const chunks = await loadKB(turn.sessionId);
@@ -182,7 +183,7 @@ async function executeFSMFlow(
     }
     if (resolvedNextConfig?.agent) {
       const agent = getAgent(resolvedNextConfig.agent);
-      const contextWithKb = { ...params.context };
+      const contextWithKb: AgentContext = { ...params.context };
       if (resolvedNextConfig.kb?.enabled) {
         try {
           const chunks = await loadKB(params.turn.sessionId);
@@ -228,7 +229,7 @@ async function executeFSMFlow(
   }
 
   if (stateConfig.agent) {
-    let contextWithKb = { ...params.context };
+    const contextWithKb: AgentContext = { ...params.context };
     if (stateConfig.kb?.enabled) {
       try {
         const chunks = await loadKB(params.turn.sessionId);
