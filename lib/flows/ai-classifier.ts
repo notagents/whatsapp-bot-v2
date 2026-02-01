@@ -4,6 +4,8 @@ import type { AIRouterConfig } from "./types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const MODELS_SUPPORTING_CUSTOM_TEMPERATURE = new Set(["gpt-4o-mini", "gpt-4o"]);
+
 const CLASSIFICATION_JSON_SCHEMA = {
   type: "object" as const,
   properties: {
@@ -118,7 +120,9 @@ Clasifica este mensaje en la categoría correcta. Responde con el valor exacto d
           schema: CLASSIFICATION_JSON_SCHEMA,
         },
       },
-      temperature: router.temperature,
+      ...(MODELS_SUPPORTING_CUSTOM_TEMPERATURE.has(router.model)
+        ? { temperature: router.temperature }
+        : {}),
     });
 
     const content = completion.choices[0]?.message?.content ?? null;
@@ -218,7 +222,9 @@ Clasifica este mensaje en la categoría correcta. Responde con el valor exacto d
           schema: CLASSIFICATION_JSON_SCHEMA,
         },
       },
-      temperature: router.temperature,
+      ...(MODELS_SUPPORTING_CUSTOM_TEMPERATURE.has(router.model)
+        ? { temperature: router.temperature }
+        : {}),
     });
 
     const content = completion.choices[0]?.message?.content ?? null;
