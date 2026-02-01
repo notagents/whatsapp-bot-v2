@@ -8,7 +8,9 @@ export async function listMdDocs(
   status?: "active" | "archived"
 ): Promise<KbMdDoc[]> {
   const db = await getDb();
-  const filter: { sessionId: string; status?: string } = { sessionId };
+  const filter: { sessionId: string; status?: "active" | "archived" } = {
+    sessionId,
+  };
   if (status) filter.status = status;
   return db
     .collection<KbMdDoc>(KB_MD_DOCS_COLLECTION)

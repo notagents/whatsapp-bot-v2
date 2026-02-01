@@ -74,13 +74,15 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
         $text: { $search: query },
       })
       .project({
+        sessionId: 1,
+        tableKey: 1,
         pk: 1,
         data: 1,
         search: 1,
         updatedAt: 1,
       })
       .limit(cap);
-    rows = await cursor.toArray();
+    rows = (await cursor.toArray()) as KbRow[];
   } catch {
     const cursor = col
       .find({
@@ -92,7 +94,7 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
         ],
       })
       .limit(cap);
-    rows = await cursor.toArray();
+    rows = (await cursor.toArray()) as KbRow[];
   }
   const numericHints = extractNumericHints(query);
   if (numericHints.length > 0 || query.includes(" ")) {

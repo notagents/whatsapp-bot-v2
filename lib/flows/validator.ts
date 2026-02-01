@@ -53,7 +53,7 @@ export function validateFlow(text: string): FlowValidationResult {
 
   const result = flowConfigSchema.safeParse(parsed);
   if (!result.success) {
-    const first = result.error.errors[0];
+    const first = result.error.issues[0];
     const path = first?.path?.length ? first.path.join(".") : "root";
     return {
       valid: false,

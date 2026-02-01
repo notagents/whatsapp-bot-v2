@@ -1,4 +1,5 @@
 import type { ObjectId } from "mongodb";
+import type { ChatCompletionTool } from "openai/resources/chat/completions";
 import type { Turn, Message, Memory } from "../models";
 
 export type KBChunkRef = { text: string; source: string };
@@ -47,7 +48,7 @@ export type AgentRunResult = {
 };
 
 export interface ToolSet {
-  definitions?: import("openai").Chat.Completions.ChatCompletionTool[];
+  definitions?: ChatCompletionTool[];
   execute(name: string, args: unknown): Promise<unknown>;
 }
 

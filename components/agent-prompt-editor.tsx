@@ -30,7 +30,7 @@ type Props = {
 
 export function AgentPromptEditor({ sessionId, agentId, className }: Props) {
   const [systemPromptTemplate, setSystemPromptTemplate] = useState("");
-  const [model, setModel] = useState(MODELS[0]);
+  const [model, setModel] = useState<string>(MODELS[0]);
   const [temperature, setTemperature] = useState(0.7);
   const [maxToolRounds, setMaxToolRounds] = useState(5);
   const [version, setVersion] = useState(0);

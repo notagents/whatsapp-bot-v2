@@ -6,8 +6,8 @@ import { validateFlow } from "@/lib/flows/validator";
 import { clearFlowResolverCache } from "@/lib/flows/resolver";
 import { requireAuth } from "@/lib/ui-auth-middleware";
 
-const FLOW_NAME = "main";
-const FLOW_TYPE = "flow";
+const FLOW_NAME = "main" as const;
+const FLOW_TYPE = "flow" as const;
 const SCHEMA_VERSION = 1;
 
 type Status = "draft" | "published";
