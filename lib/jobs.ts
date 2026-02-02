@@ -635,8 +635,8 @@ async function processSendReplyPlan(job: Job): Promise<void> {
     throw new Error(`Agent run not found or no output: ${payload.agentRunId}`);
   }
 
-  const fallbackToSingleReply = (): Promise<void> =>
-    enqueueJob(
+  const fallbackToSingleReply = async (): Promise<void> => {
+    await enqueueJob(
       {
         type: "sendReply",
         payload: { turnId: payload.turnId, agentRunId: payload.agentRunId },
@@ -644,6 +644,7 @@ async function processSendReplyPlan(job: Job): Promise<void> {
       },
       { sessionId: turn.sessionId }
     );
+  };
 
   try {
     const { resolveFlow } = await import("@/lib/flows/resolver");
