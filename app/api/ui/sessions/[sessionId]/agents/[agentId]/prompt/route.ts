@@ -109,7 +109,7 @@ export async function PUT(
   }
   const systemPromptTemplate = body.systemPromptTemplate ?? "";
   const model = body.model ?? "gpt-5-mini";
-  const temperature = body.temperature ?? 0.7;
+  const temperature = body.temperature ?? 1;
   const maxToolRounds = body.maxToolRounds ?? 5;
   const version = body.version ?? 0;
   const validation = validatePrompt(

@@ -28,7 +28,6 @@ export async function extractFactsFromTurn(turn: Turn): Promise<FactInput[]> {
       },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.2,
   });
   const content = completion.choices[0]?.message?.content;
   if (!content) return [];
@@ -58,7 +57,12 @@ export async function upsertMemoryFacts(
   await col.updateOne(
     { whatsappId },
     {
-      $setOnInsert: { whatsappId, userID, facts: [], recap: { text: "", updatedAt: 0 } },
+      $setOnInsert: {
+        whatsappId,
+        userID,
+        facts: [],
+        recap: { text: "", updatedAt: 0 },
+      },
     },
     { upsert: true }
   );
@@ -76,13 +80,16 @@ export async function upsertMemoryFacts(
     if (existing) {
       await col.updateOne(
         { whatsappId, "facts.key": fact.key },
-        { $set: { "facts.$.value": doc.value, "facts.$.confidence": doc.confidence, "facts.$.updatedAt": doc.updatedAt } }
+        {
+          $set: {
+            "facts.$.value": doc.value,
+            "facts.$.confidence": doc.confidence,
+            "facts.$.updatedAt": doc.updatedAt,
+          },
+        }
       );
     } else {
-      await col.updateOne(
-        { whatsappId },
-        { $push: { facts: doc } }
-      );
+      await col.updateOne({ whatsappId }, { $push: { facts: doc } });
     }
   }
 }
@@ -96,20 +103,21 @@ export async function generateRecap(turns: Turn[]): Promise<string> {
   const conversationText = turns
     .reverse()
     .map(
-      (t) =>
-        `Usuario: ${t.text}\nBot: ${t.response?.text ?? "(sin respuesta)"}`
+      (t) => `Usuario: ${t.text}\nBot: ${t.response?.text ?? "(sin respuesta)"}`
     )
     .join("\n\n");
   const completion = await openai.chat.completions.create({
     model: "gpt-3.5-turbo",
     messages: [{ role: "user", content: RECAP_PROMPT + conversationText }],
-    temperature: 0.3,
     max_tokens: 150,
   });
   return completion.choices[0]?.message?.content?.trim() ?? "";
 }
 
-export async function updateMemoryRecap(whatsappId: string, recap: string): Promise<void> {
+export async function updateMemoryRecap(
+  whatsappId: string,
+  recap: string
+): Promise<void> {
   const db = await getDb();
   const now = Date.now();
   await db.collection<Memory>(MEMORY_COLLECTION).updateOne(

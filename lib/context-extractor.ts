@@ -131,7 +131,6 @@ export async function extractStructuredContext(
       model: EXTRACTOR_MODEL,
       messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
-      temperature: 0.2,
       max_tokens: 512,
     });
     const content = completion.choices[0]?.message?.content;

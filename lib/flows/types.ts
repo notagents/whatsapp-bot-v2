@@ -68,7 +68,7 @@ const aiRouterSchema = z.object({
   model: z
     .enum(["gpt-4o-mini", "gpt-4o", "gpt-5-mini", "gpt-5-nano"])
     .default("gpt-5-mini"),
-  temperature: z.number().min(0).max(1).default(0.3),
+  temperature: z.number().min(0).max(1).default(1),
   routes: z.array(aiRouteSchema),
   defaultRoute: z.string().optional(),
 });

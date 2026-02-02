@@ -21,7 +21,7 @@ type Status = "draft" | "published";
 type ConfigMode = SessionRuntimeConfig["configMode"];
 
 const DEFAULT_MODEL = "gpt-5-mini";
-const DEFAULT_TEMPERATURE = 0.7;
+const DEFAULT_TEMPERATURE = 1;
 const DEFAULT_MAX_TOOL_ROUNDS = 5;
 
 const FALLBACK_CONFIGS: Record<string, AgentConfig> = {

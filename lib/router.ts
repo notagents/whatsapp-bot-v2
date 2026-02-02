@@ -33,7 +33,11 @@ function rulesBasedRouter(text: string, _context: Context): TurnRouter | null {
     lower.includes("persona real") ||
     lower.includes("operador")
   ) {
-    return { agentId: "handoff_human", reason: "explicit_handoff", confidence: 1 };
+    return {
+      agentId: "handoff_human",
+      reason: "explicit_handoff",
+      confidence: 1,
+    };
   }
   return null;
 }
@@ -46,25 +50,36 @@ async function llmRouter(text: string, _context: Context): Promise<TurnRouter> {
       { role: "user", content: text },
     ],
     response_format: { type: "json_object" },
-    temperature: 0.2,
   });
   const content = completion.choices[0]?.message?.content;
   if (!content) {
     return { agentId: "default_assistant", reason: "fallback", confidence: 0 };
   }
   try {
-    const parsed = JSON.parse(content) as { agentId?: string; reason?: string; confidence?: number };
+    const parsed = JSON.parse(content) as {
+      agentId?: string;
+      reason?: string;
+      confidence?: number;
+    };
     return {
       agentId: parsed.agentId ?? "default_assistant",
       reason: parsed.reason ?? "llm_router",
-      confidence: typeof parsed.confidence === "number" ? parsed.confidence : 0.8,
+      confidence:
+        typeof parsed.confidence === "number" ? parsed.confidence : 0.8,
     };
   } catch {
-    return { agentId: "default_assistant", reason: "parse_fallback", confidence: 0 };
+    return {
+      agentId: "default_assistant",
+      reason: "parse_fallback",
+      confidence: 0,
+    };
   }
 }
 
-export async function routeToAgent(text: string, context: Context): Promise<TurnRouter> {
+export async function routeToAgent(
+  text: string,
+  context: Context
+): Promise<TurnRouter> {
   const rulesResult = rulesBasedRouter(text, context);
   if (rulesResult) return rulesResult;
   return llmRouter(text, context);

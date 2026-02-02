@@ -74,7 +74,6 @@ export function createAssistantAgent(
       const template =
         agentConfig?.systemPromptTemplate ?? systemPromptTemplate;
       const model = agentConfig?.model ?? "gpt-5-mini";
-      const temperature = agentConfig?.temperature ?? 0.7;
       const maxRounds = agentConfig?.maxToolRounds ?? 5;
       const systemContent = buildSystemPrompt(context, template);
       const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -92,7 +91,6 @@ export function createAssistantAgent(
           model,
           messages: currentMessages,
           tools: toolDefs,
-          temperature,
         });
         const choice = completion.choices[0];
         if (!choice?.message) {

@@ -17,7 +17,7 @@
       "router": {
         "type": "ai",
         "model": "gpt-5-nano",
-        "temperature": 0.3,
+        "temperature": 1,
         "routes": [
           {
             "next": "SALUDO_HOLA_CAMI",
@@ -648,7 +648,7 @@
       "router": {
         "type": "ai",
         "model": "gpt-5-nano",
-        "temperature": 0.3,
+        "temperature": 1,
         "routes": [
           {
             "next": "CAT4_ILUMINACION_60x60",
