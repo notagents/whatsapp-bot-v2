@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, MESSAGES_COLLECTION } from "@/lib/db";
+import { getDb, MESSAGES_COLLECTION, LOCKS_COLLECTION } from "@/lib/db";
 import type { Message } from "@/lib/models";
 import { buildConversationId } from "@/lib/conversation";
 import { enqueueJob } from "@/lib/jobs";
@@ -41,9 +41,7 @@ function extractText(
   return "";
 }
 
-function normalizeMessagesArray(
-  raw: unknown
-): BaileysUpsertMessage[] {
+function normalizeMessagesArray(raw: unknown): BaileysUpsertMessage[] {
   if (Array.isArray(raw)) return raw as BaileysUpsertMessage[];
   if (raw && typeof raw === "object" && !Array.isArray(raw))
     return [raw as BaileysUpsertMessage];
@@ -69,10 +67,20 @@ export async function POST(request: NextRequest) {
     const messages = normalizeMessagesArray(
       body.messages ?? messagesFromData ?? []
     );
-    const toInsert: Message[] = [];
-
     const COOLDOWN_HOURS = 2;
     const db = await getDb();
+    const resetLockKey = `reset:${sessionId}`;
+    const resetLock = await db
+      .collection<{ key: string; expiresAt: number }>(LOCKS_COLLECTION)
+      .findOne({ key: resetLockKey, expiresAt: { $gt: Date.now() } });
+    if (resetLock) {
+      return NextResponse.json(
+        { error: "Session is being reset, try again later" },
+        { status: 503 }
+      );
+    }
+
+    const toInsert: Message[] = [];
     const messagesCol = db.collection<Message>(MESSAGES_COLLECTION);
 
     for (const item of messages) {
@@ -86,9 +94,13 @@ export async function POST(request: NextRequest) {
       if (!remoteJid) continue;
       if (fromMe === true) {
         const whatsappId = buildConversationId(sessionId, remoteJid);
-        const messageIdFromBaileys = key?.id ?? (item as { key?: { id?: string } }).key?.id;
+        const messageIdFromBaileys =
+          key?.id ?? (item as { key?: { id?: string } }).key?.id;
         let isFromBot = false;
-        if (typeof messageIdFromBaileys === "string" && messageIdFromBaileys.length > 0) {
+        if (
+          typeof messageIdFromBaileys === "string" &&
+          messageIdFromBaileys.length > 0
+        ) {
           isFromBot = !!(await messagesCol.findOne({
             whatsappId,
             source: "bot",
@@ -100,7 +112,11 @@ export async function POST(request: NextRequest) {
           if (textFromMe.length > 0) {
             const sinceSec = Math.floor(Date.now() / 1000) - 90;
             const recentBot = await messagesCol
-              .find({ whatsappId, source: "bot", messageTime: { $gte: sinceSec } })
+              .find({
+                whatsappId,
+                source: "bot",
+                messageTime: { $gte: sinceSec },
+              })
               .limit(20)
               .toArray();
             isFromBot = recentBot.some(
@@ -139,14 +155,20 @@ export async function POST(request: NextRequest) {
     }
     console.log("[webhook] Messages to save:", toInsert);
     if (toInsert.length === 0) {
-      console.warn("[webhook] No messages to save. Payload keys:", Object.keys(body));
+      console.warn(
+        "[webhook] No messages to save. Payload keys:",
+        Object.keys(body)
+      );
       return NextResponse.json({ ok: true, saved: 0 });
     }
 
     await messagesCol.insertMany(toInsert);
     const uniqueWhatsappIds = [...new Set(toInsert.map((m) => m.whatsappId))];
     for (const whatsappId of uniqueWhatsappIds) {
-      await enqueueJob({ type: "debounceTurn", payload: { whatsappId } });
+      await enqueueJob(
+        { type: "debounceTurn", payload: { whatsappId } },
+        { sessionId }
+      );
     }
     return NextResponse.json({ ok: true, saved: toInsert.length });
   } catch (err) {

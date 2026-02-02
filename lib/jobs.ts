@@ -86,7 +86,8 @@ function getJobTypeAndPayload(enqueue: EnqueueJobPayload): {
 }
 
 export async function enqueueJob(
-  enqueue: EnqueueJobPayload
+  enqueue: EnqueueJobPayload,
+  options: { sessionId?: string } = {}
 ): Promise<ObjectId> {
   const { type, payload, scheduledFor } = getJobTypeAndPayload(enqueue);
   const db = await getDb();
@@ -94,6 +95,7 @@ export async function enqueueJob(
   const now = Date.now();
   const doc: Omit<Job, "_id"> = {
     type,
+    sessionId: options.sessionId,
     status: "pending",
     payload,
     scheduledFor,
@@ -187,19 +189,50 @@ async function processDebounceTurn(job: Job): Promise<void> {
       .insertOne(turnDoc as Turn);
     const turnId = turnResult.insertedId!;
     await markMessagesProcessed(turnDoc.messageIds);
-    await enqueueJob({
-      type: "runAgent",
-      payload: { turnId: turnId.toString() },
-      scheduledFor: Date.now(),
-    });
+    await enqueueJob(
+      {
+        type: "runAgent",
+        payload: { turnId: turnId.toString() },
+        scheduledFor: Date.now(),
+      },
+      { sessionId: first.sessionId }
+    );
   } finally {
     await releaseLock(lockKey);
   }
 }
 
+async function resolveJobSessionId(job: Job): Promise<string | undefined> {
+  if (job.sessionId) return job.sessionId;
+  const db = await getDb();
+  const payload = job.payload as { whatsappId?: string; turnId?: string };
+  if (payload.whatsappId) {
+    const msg = await db
+      .collection<Message>(MESSAGES_COLLECTION)
+      .findOne(
+        { whatsappId: payload.whatsappId },
+        { projection: { sessionId: 1 } }
+      );
+    return msg?.sessionId;
+  }
+  if (payload.turnId) {
+    const turn = await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .findOne(
+        { _id: new ObjectId(payload.turnId) },
+        { projection: { sessionId: 1 } }
+      );
+    return turn?.sessionId;
+  }
+  return undefined;
+}
+
 export async function processNextJob(): Promise<boolean> {
   const db = await getDb();
   const col = db.collection<Job>(JOBS_COLLECTION);
+  const locksCol = db.collection<{ key: string; expiresAt: number }>(
+    LOCKS_COLLECTION
+  );
   const job = await col.findOneAndUpdate(
     { status: "pending", scheduledFor: { $lte: Date.now() } },
     {
@@ -209,6 +242,26 @@ export async function processNextJob(): Promise<boolean> {
     { sort: { scheduledFor: 1 }, returnDocument: "after" }
   );
   if (!job) return false;
+  const sessionId = await resolveJobSessionId(job);
+  if (sessionId) {
+    const resetLockKey = `reset:${sessionId}`;
+    const lockExists = await locksCol.findOne({
+      key: resetLockKey,
+      expiresAt: { $gt: Date.now() },
+    });
+    if (lockExists) {
+      await col.updateOne(
+        { _id: job._id },
+        {
+          $set: {
+            status: "pending" as const,
+            scheduledFor: Date.now() + 30000,
+          },
+        }
+      );
+      return false;
+    }
+  }
   try {
     switch (job.type) {
       case "debounceTurn":
@@ -393,16 +446,28 @@ async function processRunAgentImpl(job: Job): Promise<void> {
     return;
   }
   if (flowResult.assistantText) {
-    await enqueueJob({
-      type: "sendReply",
-      payload: { turnId: turnId.toString(), agentRunId: agentRunId.toString() },
-      scheduledFor: Date.now(),
-    });
-    await enqueueJob({
-      type: "memoryUpdate",
-      payload: { turnId: turnId.toString(), agentRunId: agentRunId.toString() },
-      scheduledFor: Date.now() + 5000,
-    });
+    await enqueueJob(
+      {
+        type: "sendReply",
+        payload: {
+          turnId: turnId.toString(),
+          agentRunId: agentRunId.toString(),
+        },
+        scheduledFor: Date.now(),
+      },
+      { sessionId: turn.sessionId }
+    );
+    await enqueueJob(
+      {
+        type: "memoryUpdate",
+        payload: {
+          turnId: turnId.toString(),
+          agentRunId: agentRunId.toString(),
+        },
+        scheduledFor: Date.now() + 5000,
+      },
+      { sessionId: turn.sessionId }
+    );
   }
 }
 

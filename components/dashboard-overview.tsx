@@ -218,7 +218,7 @@ export function DashboardOverview() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <div className="flex gap-1">
+                        <div className="flex gap-1 flex-wrap">
                           <Button variant="outline" size="sm" asChild>
                             <Link
                               href={`/sim/${encodeURIComponent(row.sessionId)}`}
@@ -232,7 +232,7 @@ export function DashboardOverview() {
                                 row.sessionId
                               )}`}
                             >
-                              Edit Flow
+                              Session config
                             </Link>
                           </Button>
                         </div>

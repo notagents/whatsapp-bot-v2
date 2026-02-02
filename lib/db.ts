@@ -35,3 +35,4 @@ export const AGENT_PROMPT_DOCUMENTS_COLLECTION = "agent_prompt_documents";
 export const SESSION_RUNTIME_CONFIG_COLLECTION = "session_runtime_config";
 export const SESSION_CONTEXT_CONFIG_COLLECTION = "session_context_config";
 export const SESSIONS_COLLECTION = "sessions";
+export const SESSION_RESET_RUNS_COLLECTION = "session_reset_runs";

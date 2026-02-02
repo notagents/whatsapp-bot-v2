@@ -191,6 +191,7 @@ export type JobStatus = "pending" | "processing" | "completed" | "failed";
 export type Job = {
   _id?: ObjectId;
   type: JobType;
+  sessionId?: string;
   status: JobStatus;
   payload: unknown;
   scheduledFor: number;
@@ -200,6 +201,29 @@ export type Job = {
   startedAt?: number;
   completedAt?: number;
   error?: string;
+};
+
+export type DeleteCounts = {
+  jobs: number;
+  locks: number;
+  messages: number;
+  turns: number;
+  agent_runs: number;
+  memory: number;
+  conversation_state: number;
+  responsesEnabled: number;
+};
+
+export type SessionResetRun = {
+  _id?: ObjectId;
+  sessionId: string;
+  requestedAt: number;
+  requestedBy: string;
+  mode: "dry_run" | "execute";
+  status: "running" | "success" | "error";
+  deletedCounts?: DeleteCounts;
+  error?: string;
+  completedAt?: number;
 };
 
 export type ConversationStateDoc = {
@@ -296,6 +320,7 @@ export async function ensureIndexes(): Promise<void> {
   const jobs = db.collection<Job>(JOBS_COLLECTION);
   await jobs.createIndex({ status: 1, scheduledFor: 1 });
   await jobs.createIndex({ type: 1, status: 1 });
+  await jobs.createIndex({ sessionId: 1, status: 1 });
   const conversationState = db.collection<ConversationStateDoc>(
     CONVERSATION_STATE_COLLECTION
   );

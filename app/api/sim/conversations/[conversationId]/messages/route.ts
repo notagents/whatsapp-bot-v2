@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, MESSAGES_COLLECTION } from "@/lib/db";
+import { getDb, MESSAGES_COLLECTION, LOCKS_COLLECTION } from "@/lib/db";
 import type { Message } from "@/lib/models";
 import { parseSimulatorConversationId } from "@/lib/conversation";
 import { enqueueJob } from "@/lib/jobs";
@@ -67,6 +67,16 @@ export async function POST(
         : undefined;
     const { sessionId, testUserId } = parsed;
     const db = await getDb();
+    const resetLockKey = `reset:${sessionId}`;
+    const resetLock = await db
+      .collection<{ key: string; expiresAt: number }>(LOCKS_COLLECTION)
+      .findOne({ key: resetLockKey, expiresAt: { $gt: Date.now() } });
+    if (resetLock) {
+      return NextResponse.json(
+        { error: "Session is being reset, try again later" },
+        { status: 503 }
+      );
+    }
     const messageDoc: Message = {
       whatsappId: decoded,
       sessionId,
@@ -79,11 +89,14 @@ export async function POST(
       ...(configOverride && { configOverride }),
     };
     await db.collection<Message>(MESSAGES_COLLECTION).insertOne(messageDoc);
-    await enqueueJob({
-      type: "debounceTurn",
-      payload: { whatsappId: decoded },
-      scheduledFor: Date.now() + DEBOUNCE_DELAY_MS,
-    });
+    await enqueueJob(
+      {
+        type: "debounceTurn",
+        payload: { whatsappId: decoded },
+        scheduledFor: Date.now() + DEBOUNCE_DELAY_MS,
+      },
+      { sessionId }
+    );
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[sim conversations messages POST]", err);
