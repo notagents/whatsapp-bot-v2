@@ -8,6 +8,7 @@ import {
   MEMORY_COLLECTION,
   JOBS_COLLECTION,
   CONVERSATION_STATE_COLLECTION,
+  CONVERSATION_SESSIONS_COLLECTION,
   LOCKS_COLLECTION,
   KB_MD_DOCS_COLLECTION,
   KB_MD_CHUNKS_COLLECTION,
@@ -89,6 +90,7 @@ export type Turn = {
   response?: TurnResponse;
   meta?: { rawEventIds?: string[]; flow?: TurnMetaFlow };
   configOverride?: "draft" | "published";
+  sessionNumber?: number;
 };
 
 export type AgentRunStatus = "running" | "success" | "error";
@@ -149,6 +151,30 @@ export type MemoryRecap = {
   updatedAt: number;
 };
 
+export type ConversationSessionStatus = "active" | "closed";
+export type ConversationSessionClosedReason = "timeout" | "manual";
+
+export type ConversationSession = {
+  _id?: ObjectId;
+  whatsappId: string;
+  sessionNumber: number;
+  startedAt: number;
+  lastMessageAt: number;
+  messageCount: number;
+  status: ConversationSessionStatus;
+  recap?: string;
+  closedAt?: number;
+  closedReason?: ConversationSessionClosedReason;
+};
+
+export type HistoricalRecap = {
+  sessionNumber: number;
+  text: string;
+  startedAt: number;
+  closedAt: number;
+  messageCount: number;
+};
+
 export type StructuredContext = {
   environment?: "interior" | "exterior";
   seedType?: "automatica" | "fotoperiodica";
@@ -177,6 +203,8 @@ export type Memory = {
   recap: MemoryRecap;
   structuredContext?: Record<string, unknown>;
   contextSchemaVersion?: number;
+  historicalRecaps?: HistoricalRecap[];
+  lastSessionNumber?: number;
 };
 
 export type JobType =
@@ -325,6 +353,15 @@ export async function ensureIndexes(): Promise<void> {
     CONVERSATION_STATE_COLLECTION
   );
   await conversationState.createIndex({ whatsappId: 1 }, { unique: true });
+  const conversationSessions = db.collection<ConversationSession>(
+    CONVERSATION_SESSIONS_COLLECTION
+  );
+  await conversationSessions.createIndex({
+    whatsappId: 1,
+    status: 1,
+    lastMessageAt: -1,
+  });
+  await conversationSessions.createIndex({ whatsappId: 1, sessionNumber: -1 });
   const locks = db.collection<{ key: string }>(LOCKS_COLLECTION);
   await locks.createIndex({ key: 1 }, { unique: true });
   const kbMdDocs = db.collection<KbMdDoc>(KB_MD_DOCS_COLLECTION);

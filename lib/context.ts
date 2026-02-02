@@ -4,13 +4,15 @@ import {
   MESSAGES_COLLECTION,
   MEMORY_COLLECTION,
   CONVERSATION_STATE_COLLECTION,
+  TURNS_COLLECTION,
 } from "./db";
-import type { Message, Memory, ConversationStateDoc } from "./models";
+import type { Message, Memory, ConversationStateDoc, Turn } from "./models";
 import { getActualJid } from "./conversation";
 import {
   extractStructuredContext,
   persistStructuredContext,
 } from "./context-extractor";
+import { getSession } from "./conversation-session";
 
 const RECENT_MESSAGES_LIMIT = 20;
 const CONTEXT_SNAPSHOT_MESSAGES_LIMIT = 20;
@@ -50,9 +52,28 @@ export async function buildContext(
   turnId?: ObjectId
 ): Promise<Context> {
   const db = await getDb();
+  let sessionStartTime: number | undefined;
+  if (turnId) {
+    const turn = await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .findOne({ _id: turnId }, { projection: { sessionNumber: 1 } });
+    if (turn?.sessionNumber != null) {
+      const convSession = await getSession(whatsappId, turn.sessionNumber);
+      if (convSession) {
+        sessionStartTime = Math.floor(convSession.startedAt / 1000);
+      }
+    }
+  }
+  const messageFilter: { whatsappId: string; messageTime?: { $gte: number } } =
+    {
+      whatsappId,
+    };
+  if (sessionStartTime != null) {
+    messageFilter.messageTime = { $gte: sessionStartTime };
+  }
   const recentMessages = await db
     .collection<Message>(MESSAGES_COLLECTION)
-    .find({ whatsappId })
+    .find(messageFilter)
     .sort({ messageTime: -1 })
     .limit(RECENT_MESSAGES_LIMIT)
     .toArray();

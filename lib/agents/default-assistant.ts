@@ -1,29 +1,47 @@
 import OpenAI from "openai";
 import type { Agent, AgentRunParams, AgentRunResult, ToolCall } from "./types";
+import type { HistoricalRecap } from "../models";
 import { TOOL_DEFINITIONS } from "./tools";
 import { formatStructuredContextForPrompt } from "../context-extractor";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+const MAX_HISTORICAL_SESSIONS =
+  Number(process.env.MAX_HISTORICAL_SESSIONS) || 3;
+
 export const DEFAULT_SYSTEM_PROMPT_TEMPLATE = `Eres un asistente de WhatsApp amigable y útil.
 
 Contexto actual:
 - Conversación con: {userID}
+- Sesión actual: #{sessionNumber}
 - Datos ya capturados: {structuredContext}
-- Hechos conocidos: {facts}
-- Resumen reciente: {recap}
+- Resumen de esta sesión: {recap}
+{historicalContext}
 {kbSection}
 
 Responde de forma natural, concisa y en español.`;
 
+function buildHistoricalContextSection(
+  historicalRecaps: HistoricalRecap[] | undefined
+): string {
+  if (!historicalRecaps || historicalRecaps.length === 0) return "";
+  const recent = historicalRecaps.slice(-MAX_HISTORICAL_SESSIONS);
+  const lines = recent.map((r) => `  - Sesión #${r.sessionNumber}: ${r.text}`);
+  return `- Conversaciones previas:\n${lines.join("\n")}`;
+}
+
 function buildSystemPrompt(
+  turn: AgentRunParams["turn"],
   context: AgentRunParams["context"],
   template: string
 ): string {
-  const factsStr = "ninguno (deprecado)";
+  const sessionNumber = turn.sessionNumber ?? 1;
   const recapStr = context.memory.recap?.text ?? "";
   const structuredContextStr = formatStructuredContextForPrompt(
     context.memory.structuredContext as Record<string, unknown> | undefined
+  );
+  const historicalContext = buildHistoricalContextSection(
+    context.memory.historicalRecaps
   );
   const kbSection =
     context.kbChunks && context.kbChunks.length > 0
@@ -32,9 +50,13 @@ function buildSystemPrompt(
       : "";
   return template
     .replace("{userID}", context.memory.userID)
-    .replace("{facts}", factsStr)
+    .replace("{sessionNumber}", String(sessionNumber))
     .replace("{recap}", recapStr)
     .replace("{structuredContext}", structuredContextStr)
+    .replace(
+      "{historicalContext}",
+      historicalContext ? historicalContext + "\n" : ""
+    )
     .replace("{kbSection}", kbSection ? kbSection + "\n" : "");
 }
 
@@ -75,7 +97,7 @@ export function createAssistantAgent(
         agentConfig?.systemPromptTemplate ?? systemPromptTemplate;
       const model = agentConfig?.model ?? "gpt-5-mini";
       const maxRounds = agentConfig?.maxToolRounds ?? 5;
-      const systemContent = buildSystemPrompt(context, template);
+      const systemContent = buildSystemPrompt(turn, context, template);
       const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
         { role: "system", content: systemContent },
         ...buildMessages(turn, context),

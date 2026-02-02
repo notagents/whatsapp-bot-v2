@@ -1,8 +1,8 @@
 import OpenAI from "openai";
 import { getDb } from "./db";
 import { MEMORY_COLLECTION } from "./db";
-import type { Turn, Memory, MemoryFact } from "./models";
-import { getRecentTurns } from "./turns";
+import type { Turn, Memory, MemoryFact, HistoricalRecap } from "./models";
+import { getRecentTurns, getTurnsForSession } from "./turns";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -97,6 +97,63 @@ export async function upsertMemoryFacts(
 const RECAP_PROMPT = `Resume en 2-3 oraciones el contexto general de esta conversación (en español):
 
 `;
+
+const SESSION_RECAP_PROMPT = `Resume en 2-3 oraciones el contexto general de esta sesión de conversación.
+Enfócate en: qué consultó el usuario, qué información se capturó, y el estado/resultado de la interacción.
+Responde en español:
+
+`;
+
+const MAX_STORED_HISTORICAL_SESSIONS =
+  Number(process.env.MAX_STORED_HISTORICAL_SESSIONS) || 10;
+
+export async function generateSessionRecap(
+  whatsappId: string,
+  sessionNumber: number
+): Promise<string> {
+  const turns = await getTurnsForSession(whatsappId, sessionNumber);
+  if (turns.length === 0) return "";
+  const conversationText = turns
+    .map(
+      (t) => `Usuario: ${t.text}\nBot: ${t.response?.text ?? "(sin respuesta)"}`
+    )
+    .join("\n\n");
+  const completion = await openai.chat.completions.create({
+    model: "gpt-3.5-turbo",
+    messages: [
+      { role: "user", content: SESSION_RECAP_PROMPT + conversationText },
+    ],
+    max_tokens: 150,
+  });
+  return completion.choices[0]?.message?.content?.trim() ?? "";
+}
+
+export async function appendHistoricalRecap(
+  whatsappId: string,
+  entry: HistoricalRecap
+): Promise<void> {
+  const db = await getDb();
+  const col = db.collection<Memory>(MEMORY_COLLECTION);
+  await col.updateOne(
+    { whatsappId },
+    {
+      $push: {
+        historicalRecaps: {
+          $each: [entry],
+          $slice: -MAX_STORED_HISTORICAL_SESSIONS,
+        },
+      },
+      $set: { lastSessionNumber: entry.sessionNumber },
+      $setOnInsert: {
+        whatsappId,
+        userID: whatsappId,
+        facts: [],
+        recap: { text: "", updatedAt: 0 },
+      },
+    },
+    { upsert: true }
+  );
+}
 
 export async function generateRecap(turns: Turn[]): Promise<string> {
   if (turns.length === 0) return "";

@@ -13,6 +13,7 @@ import {
   isSimulatorConversation,
   parseSimulatorConversationId,
 } from "./conversation";
+import { getOrCreateActiveSession, touchSession } from "./conversation-session";
 import { reindexMarkdownDoc } from "./kb-v2/md/chunker";
 
 const DEBOUNCE_DELAY_MS = 3000;
@@ -168,19 +169,22 @@ async function processDebounceTurn(job: Job): Promise<void> {
       UNPROCESSED_WINDOW_MS
     );
     if (messages.length === 0) return;
+    const convSession = await getOrCreateActiveSession(whatsappId);
     const first = messages[0];
+    const now = Date.now();
     const turnDoc: Omit<Turn, "_id"> = {
       whatsappId,
       sessionId: first.sessionId,
       userID: normalizeUserID(first.userID),
       channel: first.channel,
-      createdAt: Date.now(),
+      createdAt: now,
       messageIds: messages.map((m) => m._id!).filter(Boolean),
       text: messages
         .map((m) => m.messageText)
         .join(" ")
         .trim(),
       status: "queued",
+      sessionNumber: convSession.sessionNumber,
       ...(first.configOverride && { configOverride: first.configOverride }),
     };
     const db = await getDb();
@@ -189,6 +193,12 @@ async function processDebounceTurn(job: Job): Promise<void> {
       .insertOne(turnDoc as Turn);
     const turnId = turnResult.insertedId!;
     await markMessagesProcessed(turnDoc.messageIds);
+    await touchSession(
+      whatsappId,
+      convSession.sessionNumber,
+      now,
+      messages.length
+    );
     await enqueueJob(
       {
         type: "runAgent",

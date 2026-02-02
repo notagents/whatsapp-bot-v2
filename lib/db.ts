@@ -24,6 +24,7 @@ export const AGENT_RUNS_COLLECTION = "agent_runs";
 export const MEMORY_COLLECTION = "memory";
 export const JOBS_COLLECTION = "jobs";
 export const CONVERSATION_STATE_COLLECTION = "conversation_state";
+export const CONVERSATION_SESSIONS_COLLECTION = "conversation_sessions";
 export const LOCKS_COLLECTION = "locks";
 export const KB_MD_DOCS_COLLECTION = "kb_md_docs";
 export const KB_MD_CHUNKS_COLLECTION = "kb_md_chunks";
