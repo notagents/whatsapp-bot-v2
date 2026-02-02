@@ -331,7 +331,7 @@ async function processRunAgentImpl(job: Job): Promise<void> {
   const { buildContext } = await import("@/lib/context");
   const { resolveFlow } = await import("@/lib/flows/registry");
   const { executeFlow } = await import("@/lib/flows/runtime");
-  const context = await buildContext(turn.whatsappId);
+  const context = await buildContext(turn.whatsappId, turn._id);
   const resolvedFlow = await resolveFlow(turn.sessionId);
   const flowResult = await executeFlow({
     sessionId: turn.sessionId,

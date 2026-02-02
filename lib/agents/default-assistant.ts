@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import type { Agent, AgentRunParams, AgentRunResult, ToolCall } from "./types";
 import { TOOL_DEFINITIONS } from "./tools";
+import { formatStructuredContextForPrompt } from "../context-extractor";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -8,6 +9,7 @@ export const DEFAULT_SYSTEM_PROMPT_TEMPLATE = `Eres un asistente de WhatsApp ami
 
 Contexto actual:
 - Conversación con: {userID}
+- Datos ya capturados: {structuredContext}
 - Hechos conocidos: {facts}
 - Resumen reciente: {recap}
 {kbSection}
@@ -23,6 +25,9 @@ function buildSystemPrompt(
       ? context.memory.facts.map((f) => `${f.key}: ${f.value}`).join("; ")
       : "ninguno";
   const recapStr = context.memory.recap?.text ?? "";
+  const structuredContextStr = formatStructuredContextForPrompt(
+    context.memory.structuredContext
+  );
   const kbSection =
     context.kbChunks && context.kbChunks.length > 0
       ? "- Documentación relevante:\n" +
@@ -32,6 +37,7 @@ function buildSystemPrompt(
     .replace("{userID}", context.memory.userID)
     .replace("{facts}", factsStr)
     .replace("{recap}", recapStr)
+    .replace("{structuredContext}", structuredContextStr)
     .replace("{kbSection}", kbSection ? kbSection + "\n" : "");
 }
 

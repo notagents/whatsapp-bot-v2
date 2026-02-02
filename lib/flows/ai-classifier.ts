@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import type { Context } from "@/lib/context";
+import { formatStructuredContextForPrompt } from "@/lib/context-extractor";
 import type { AIRouterConfig } from "./types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
@@ -78,6 +79,9 @@ export async function classifyWithAI(
     .slice(-3)
     .map((m) => `[${m.source}] ${m.messageText}`)
     .join(" → ");
+  const structuredContextStr = formatStructuredContextForPrompt(
+    context.memory.structuredContext
+  );
 
   const systemPrompt = `Eres un clasificador de intenciones para un bot de WhatsApp de grow shop.
 
@@ -88,14 +92,16 @@ Tu tarea: analizar el mensaje del usuario y seleccionar la categoría más aprop
 ${routeDescriptions}
 
 ## Contexto adicional:
+- Datos ya capturados de la conversacion: ${structuredContextStr}
 - Mensajes recientes: ${recentPreview || "(ninguno)"}
 - Estado actual: ${currentState}
 
 ## Reglas:
 1. Selecciona SOLO una categoría usando el valor exacto del campo "next"
 2. Si ninguna categoría aplica, usa: ${router.defaultRoute ?? "NO_CLARO"}
-3. Considera sinónimos, variaciones y contexto conversacional
-4. Prioriza la intención sobre keywords exactos`;
+3. Considera sinonimos, variaciones y contexto conversacional
+4. Si los datos capturados muestran que el usuario ya eligio ambiente y tipo de semilla (recomendacion de semillas en curso) y el mensaje es una respuesta corta (presupuesto, espacio, cantidad de plantas), prioriza CAT1_SEMILLAS_FOLLOWUP sobre CAT9_SETUP
+5. Prioriza la intencion sobre keywords exactos`;
 
   const userPrompt = `Mensaje del usuario: "${text}"
 
@@ -177,6 +183,9 @@ export async function classifyWithAIWithResult(
     .slice(-3)
     .map((m) => `[${m.source}] ${m.messageText}`)
     .join(" → ");
+  const structuredContextStr = formatStructuredContextForPrompt(
+    context.memory.structuredContext
+  );
 
   const systemPrompt = `Eres un clasificador de intenciones para un bot de WhatsApp de grow shop.
 
@@ -187,14 +196,16 @@ Tu tarea: analizar el mensaje del usuario y seleccionar la categoría más aprop
 ${routeDescriptions}
 
 ## Contexto adicional:
+- Datos ya capturados de la conversacion: ${structuredContextStr}
 - Mensajes recientes: ${recentPreview || "(ninguno)"}
 - Estado actual: ${currentState}
 
 ## Reglas:
 1. Selecciona SOLO una categoría usando el valor exacto del campo "next"
 2. Si ninguna categoría aplica, usa: ${router.defaultRoute ?? "NO_CLARO"}
-3. Considera sinónimos, variaciones y contexto conversacional
-4. Prioriza la intención sobre keywords exactos`;
+3. Considera sinonimos, variaciones y contexto conversacional
+4. Si los datos capturados muestran que el usuario ya eligio ambiente y tipo de semilla (recomendacion de semillas en curso) y el mensaje es una respuesta corta (presupuesto, espacio, cantidad de plantas), prioriza CAT1_SEMILLAS_FOLLOWUP sobre CAT9_SETUP
+5. Prioriza la intencion sobre keywords exactos`;
 
   const userPrompt = `Mensaje del usuario: "${text}"
 

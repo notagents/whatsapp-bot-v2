@@ -1,0 +1,1243 @@
+{
+  "mode": "fsm",
+  "initialState": "START",
+  "states": {
+    "START": {
+      "reply": "Hola! Soy Cami de Astro, en que te ayudo?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "ROUTER": {
+      "router": {
+        "type": "ai",
+        "model": "gpt-5-nano",
+        "temperature": 0.3,
+        "routes": [
+          {
+            "next": "SALUDO_HOLA_CAMI",
+            "description": "Usuario saluda específicamente a 'Cami'",
+            "examples": ["hola cami", "buenas cami"]
+          },
+          {
+            "next": "SALUDO_HOLA",
+            "description": "Saludo general del usuario",
+            "examples": ["hola", "buenos días", "buenas"]
+          },
+          {
+            "next": "ESCALATE",
+            "name": "Escalamiento a humano",
+            "description": "Consultas que requieren intervención humana: estado o seguimiento de pedido, reclamos, pago no acreditado, mayoristas, reventa, factura A, garantía compleja (reclamo vapo/semillas)",
+            "examples": [
+              "donde esta mi pedido",
+              "numero de orden",
+              "no me acreditaron el pago",
+              "quiero hablar con alguien"
+            ],
+            "keywords": [
+              "estado del pedido",
+              "seguimiento",
+              "reclamo",
+              "mayorista",
+              "reventa",
+              "factura a"
+            ]
+          },
+          {
+            "next": "OFFTOPIC",
+            "description": "Temas off-topic no relacionados con el negocio (transporte público, clima, política)",
+            "keywords": ["bondi", "colectivo", "subte", "clima", "politica"]
+          },
+          {
+            "next": "CAT1_SEMILLAS_P1",
+            "name": "Semillas y Genéticas",
+            "description": "Consultas sobre semillas de cannabis, genéticas, cepas, strains, feminizadas, indica/sativa",
+            "examples": [
+              "quiero comprar semillas",
+              "que geneticas tienen",
+              "semillas feminizadas"
+            ],
+            "keywords": [
+              "semilla",
+              "genetica",
+              "cepa",
+              "strain",
+              "fem",
+              "indica",
+              "sativa"
+            ]
+          },
+          {
+            "next": "CAT1_SEMILLAS_FOLLOWUP",
+            "name": "Continuacion recomendacion semillas",
+            "description": "Usuario ya eligio interior/exterior y tipo de semilla (automatica/fotoperiodica) y esta respondiendo presupuesto, espacio (placard/habitacion/balcon) o cantidad de plantas. Continuar con la recomendacion de semillas.",
+            "examples": [
+              "35 mil",
+              "placard",
+              "3",
+              "solo las semillas",
+              "ya lo hablamos"
+            ]
+          },
+          {
+            "next": "CAT2_SUSTRATOS_P1",
+            "name": "Sustratos y Tierra",
+            "description": "Consultas sobre sustratos, tierra, coco, perlita, turba, vermiculita",
+            "keywords": [
+              "sustrato",
+              "tierra",
+              "coco",
+              "perlita",
+              "turba",
+              "vermiculita"
+            ]
+          },
+          {
+            "next": "CAT3_FERTILIZANTES_P1",
+            "name": "Fertilizantes y Nutrientes",
+            "description": "Consultas sobre fertilizantes, nutrientes, abonos, productos flora/vege, tripacks",
+            "keywords": [
+              "fertilizante",
+              "nutriente",
+              "abono",
+              "flora",
+              "vege",
+              "tripack"
+            ]
+          },
+          {
+            "next": "CAT4_ILUMINACION_P1",
+            "name": "Iluminación",
+            "description": "Consultas sobre luces de cultivo, LED, paneles, galponeras, balastros, quantum boards",
+            "keywords": [
+              "luz",
+              "led",
+              "panel",
+              "galponera",
+              "balastro",
+              "quantum"
+            ]
+          },
+          {
+            "next": "CAT5_CARPAS_P1",
+            "name": "Carpas Indoor",
+            "description": "Consultas sobre carpas de cultivo, grow tents, armarios indoor",
+            "keywords": ["carpa", "indoor", "armario", "grow tent"]
+          },
+          {
+            "next": "CAT6_VENTILACION_P1",
+            "name": "Ventilación",
+            "description": "Consultas sobre extractores, ventilación, filtros de olor, carbón activado",
+            "keywords": [
+              "extractor",
+              "ventilacion",
+              "filtro olor",
+              "carbon activado"
+            ]
+          },
+          {
+            "next": "CAT7_PLAGAS_P1",
+            "name": "Control de Plagas",
+            "description": "Consultas sobre plagas, neem, araña roja, trips, fungicidas, insecticidas",
+            "keywords": [
+              "plaga",
+              "neem",
+              "arana roja",
+              "trips",
+              "fungicida",
+              "insecticida"
+            ]
+          },
+          {
+            "next": "CAT8_ACCESORIOS_P1",
+            "name": "Accesorios de Cultivo",
+            "description": "Consultas sobre macetas, medidores de pH, tijeras, timers, termómetros",
+            "keywords": ["maceta", "ph", "tijera", "timer", "termometro"]
+          },
+          {
+            "next": "CAT9_SETUP_P1",
+            "name": "Setup Inicial",
+            "description": "Usuarios principiantes que quieren empezar a cultivar por primera vez, buscan kits completos",
+            "examples": [
+              "quiero empezar a cultivar",
+              "primera vez cultivo",
+              "que necesito para empezar"
+            ],
+            "keywords": [
+              "empezar",
+              "primera vez",
+              "kit",
+              "que necesito",
+              "setup"
+            ]
+          },
+          {
+            "next": "CAT11_ASESORAMIENTO_P1",
+            "name": "Asesoramiento Técnico",
+            "description": "Problemas con plantas existentes, hojas amarillas, diagnóstico de cultivo",
+            "examples": [
+              "mi planta tiene hojas amarillas",
+              "problema con el cultivo"
+            ],
+            "keywords": ["hojas amarillas", "mi planta", "problema"]
+          },
+          {
+            "next": "CAT12_VAPOS_P1",
+            "name": "Vaporizadores",
+            "description": "Consultas sobre vaporizadores, vapes",
+            "keywords": ["vaporizador", "vapo", "vape"]
+          },
+          {
+            "next": "INFO_KB",
+            "name": "Información General",
+            "description": "Información institucional de la tienda: dirección, horarios, envíos, métodos de pago (cuotas, transferencia, efectivo), políticas de garantía y devolución, cómo hacer un pedido. No es reclamo ni estado de pedido.",
+            "examples": [
+              "donde están ubicados",
+              "que horario tienen",
+              "hacen envios",
+              "formas de pago",
+              "como pago",
+              "cuotas sin interes",
+              "como hago un pedido",
+              "politica de garantia"
+            ],
+            "keywords": [
+              "direccion",
+              "horarios",
+              "envio",
+              "pago",
+              "garantia",
+              "ubicacion",
+              "local",
+              "retiro",
+              "transferencia",
+              "cuotas"
+            ]
+          },
+          {
+            "next": "DESPEDIDA",
+            "name": "Despedida",
+            "description": "Usuario se despide, agradece, indica que no necesita nada mas o que la conversacion termina",
+            "examples": [
+              "gracias",
+              "chau",
+              "nos vemos",
+              "listo gracias",
+              "no necesito nada mas",
+              "perfecto gracias"
+            ],
+            "keywords": [
+              "gracias",
+              "chau",
+              "adios",
+              "hasta luego",
+              "nos vemos",
+              "listo",
+              "dale"
+            ]
+          },
+          {
+            "next": "NO_CLARO",
+            "description": "Fallback cuando no se puede clasificar con confianza el mensaje"
+          }
+        ],
+        "defaultRoute": "NO_CLARO"
+      }
+    },
+    "SALUDO_HOLA_CAMI": {
+      "reply": "Hola! En que puedo ayudarte con Astro Grow hoy?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "SALUDO_HOLA": {
+      "reply": "Hola! Aqui Cami de Astro! En que puedo ayudarte hoy?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "OFFTOPIC": {
+      "reply": "Perdon, con eso no te puedo ayudar por aca. Que necesitas ver de cultivo o productos de Astro Grow hoy?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "ESCALATE": {
+      "reply": "Dale, con eso te ayuda mejor alguien del equipo. Me decis tu numero de orden o algun dato del pedido?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "END"
+        }
+      ]
+    },
+    "NO_CLARO": {
+      "reply": "Perdon, no llegue a entender bien. Me contas que estas buscando?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_P1": {
+      "reply": "Dale, para ayudarte bien primero necesito esto. Vas a cultivar en interior o exterior?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT1_SEMILLAS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_P1_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          {
+            "keyword": "interior",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "indoor",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "carpa",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "placard",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "exterior",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "afuera",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "balcon",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "keyword": "patio",
+            "next": "CAT1_SEMILLAS_P2"
+          },
+          {
+            "default": true,
+            "next": "CAT1_SEMILLAS_P1_REPEAT"
+          }
+        ]
+      }
+    },
+    "CAT1_SEMILLAS_P1_REPEAT": {
+      "reply": "Perfecto, para ubicarte bien necesito una cosa. Es interior o exterior?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT1_SEMILLAS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_P2": {
+      "reply": "Genial. Las automaticas florecen solas por tiempo, las fotoperiodicas dependen de las horas de luz. Cual preferis, automatica o fotoperiodica?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT1_SEMILLAS_P2_ROUTER"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_P2_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          {
+            "keyword": "auto",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "automatica",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "autofloreciente",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "foto",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "fotoperiodica",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "fotoperiodo",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "keyword": "no se",
+            "next": "CAT1_SEMILLAS_RECOMMEND"
+          },
+          {
+            "default": true,
+            "next": "CAT1_SEMILLAS_P2_REPEAT"
+          }
+        ]
+      }
+    },
+    "CAT1_SEMILLAS_P2_REPEAT": {
+      "reply": "Dale, asi te recomiendo bien. Preferis automatica o fotoperiodica?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT1_SEMILLAS_P2_ROUTER"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_RECOMMEND": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT1_SEMILLAS_FOLLOWUP"
+        }
+      ]
+    },
+    "CAT1_SEMILLAS_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT2_SUSTRATOS_P1": {
+      "reply": "Dale, para recomendarte bien. Vas a usar fertilizantes o queres algo completo que no necesite fertilizar?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT2_SUSTRATOS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT2_SUSTRATOS_P1_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          {
+            "keyword": "completo",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "sin fertilizar",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "no fertilizar",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "super soil",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "fertilizante",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "fertilizar",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "growmix",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "keyword": "liviano",
+            "next": "CAT2_SUSTRATOS_RECOMMEND"
+          },
+          {
+            "default": true,
+            "next": "CAT2_SUSTRATOS_P1_REPEAT"
+          }
+        ]
+      }
+    },
+    "CAT2_SUSTRATOS_P1_REPEAT": {
+      "reply": "Perfecto, necesito saber eso. Preferis un sustrato completo que casi no necesite fertilizar o vas a usar fertilizantes?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT2_SUSTRATOS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT2_SUSTRATOS_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT3_FERTILIZANTES_P1": {
+      "reply": "Dale, para asesorarte bien. En que etapa estan tus plantas? Vege o flora?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT3_FERTILIZANTES_P2"
+        }
+      ]
+    },
+    "CAT3_FERTILIZANTES_P2": {
+      "reply": "Que sustrato usas? Cuando fue el ultimo trasplante?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT3_FERTILIZANTES_P3"
+        }
+      ]
+    },
+    "CAT3_FERTILIZANTES_P3": {
+      "reply": "Cada cuanto regas y en que momento del dia? Si podes mandame una foto de la planta para asesorarte mejor.",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT3_FERTILIZANTES_RECOMMEND"
+        }
+      ]
+    },
+    "CAT3_FERTILIZANTES_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_P1": {
+      "reply": "Dale, para recomendarte bien. Cuantas plantas vas a cultivar o de que tamano es tu espacio?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT4_ILUMINACION_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_P1_ROUTER": {
+      "router": {
+        "type": "ai",
+        "model": "gpt-5-nano",
+        "temperature": 0.3,
+        "routes": [
+          {
+            "next": "CAT4_ILUMINACION_60x60",
+            "description": "1 a 4 plantas o espacio 60x60 o chico",
+            "examples": [
+              "2 plantas",
+              "60x60",
+              "60 por 60",
+              "espacio chico",
+              "4 plantas"
+            ]
+          },
+          {
+            "next": "CAT4_ILUMINACION_80x80",
+            "description": "5 o 6 plantas o espacio 80x80 o mediano",
+            "examples": ["5 plantas", "6 plantas", "80x80", "espacio mediano"]
+          },
+          {
+            "next": "CAT4_ILUMINACION_100x100",
+            "description": "7 a 9 plantas o espacio 100x100 o grande",
+            "examples": [
+              "9 plantas",
+              "100x100",
+              "1 metro por 1 metro",
+              "espacio grande"
+            ]
+          }
+        ],
+        "defaultRoute": "CAT4_ILUMINACION_P1_REPEAT"
+      }
+    },
+    "CAT4_ILUMINACION_P1_REPEAT": {
+      "reply": "Perfecto, necesito saber eso para ubicarte bien. Cuantas plantas o que medida tiene tu espacio? Por ejemplo 60x60, 80x80, etc",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT4_ILUMINACION_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_60x60": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_80x80": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_100x100": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT5_CARPAS_P1": {
+      "reply": "Dale, cuantas plantas pensas cultivar?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT5_CARPAS_P2"
+        }
+      ]
+    },
+    "CAT5_CARPAS_P2": {
+      "reply": "Solo queres la carpa o equiparla completa con luz, ventilacion y todo?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT5_CARPAS_P2_ROUTER"
+        }
+      ]
+    },
+    "CAT5_CARPAS_P2_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          {
+            "keyword": "solo",
+            "next": "CAT5_CARPAS_RECOMMEND"
+          },
+          {
+            "keyword": "carpa",
+            "next": "CAT5_CARPAS_RECOMMEND"
+          },
+          {
+            "keyword": "solo carpa",
+            "next": "CAT5_CARPAS_RECOMMEND"
+          },
+          {
+            "keyword": "equipar",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "keyword": "completa",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "keyword": "todo",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "keyword": "completo",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "keyword": "luz",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "keyword": "ventilacion",
+            "next": "CAT9_SETUP_P1"
+          },
+          {
+            "default": true,
+            "next": "CAT5_CARPAS_P2_REPEAT"
+          }
+        ]
+      }
+    },
+    "CAT5_CARPAS_P2_REPEAT": {
+      "reply": "Dale, necesito saber. Solo la carpa o queres que te arme el setup completo con luz, ventilacion y demas?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT5_CARPAS_P2_ROUTER"
+        }
+      ]
+    },
+    "CAT5_CARPAS_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT6_VENTILACION_P1": {
+      "reply": "Dale, de que tamano es tu carpa o espacio?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT6_VENTILACION_P2"
+        }
+      ]
+    },
+    "CAT6_VENTILACION_P2": {
+      "reply": "Necesitas filtro de olor o solo extraccion?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT6_VENTILACION_P3"
+        }
+      ]
+    },
+    "CAT6_VENTILACION_P3": {
+      "reply": "Ya tenes sistema de ventilacion o arrancas de cero?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT6_VENTILACION_RECOMMEND"
+        }
+      ]
+    },
+    "CAT6_VENTILACION_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT7_PLAGAS_P1": {
+      "reply": "Dale, tenes algun problema ahora o es para prevenir?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT7_PLAGAS_P2"
+        }
+      ]
+    },
+    "CAT7_PLAGAS_P2": {
+      "reply": "Que ves en las plantas? Manchas, bichos, telaranas?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT7_PLAGAS_P3"
+        }
+      ]
+    },
+    "CAT7_PLAGAS_P3": {
+      "reply": "Es cultivo interior o exterior?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT7_PLAGAS_RECOMMEND"
+        }
+      ]
+    },
+    "CAT7_PLAGAS_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT8_ACCESORIOS_P1": {
+      "reply": "Dale, que accesorio puntual buscas?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT8_ACCESORIOS_P2"
+        }
+      ]
+    },
+    "CAT8_ACCESORIOS_P2": {
+      "reply": "Es para complementar tu cultivo o estas arrancando?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT8_ACCESORIOS_RECOMMEND"
+        }
+      ]
+    },
+    "CAT8_ACCESORIOS_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT9_SETUP_P1": {
+      "reply": "Dale, tenes espacio pensado? Placard, habitacion, balcon?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT9_SETUP_P2"
+        }
+      ]
+    },
+    "CAT9_SETUP_P2": {
+      "reply": "Cuantas plantas para empezar?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT9_SETUP_P3"
+        }
+      ]
+    },
+    "CAT9_SETUP_P3": {
+      "reply": "Tenes algo comprado o arrancas de cero?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT9_SETUP_P4"
+        }
+      ]
+    },
+    "CAT9_SETUP_P4": {
+      "reply": "Presupuesto aproximado para todo?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT9_SETUP_RECOMMEND"
+        }
+      ]
+    },
+    "CAT9_SETUP_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_P1": {
+      "reply": "Dale, en que etapa estan tus plantas? Vege o flora?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT11_ASESORAMIENTO_P2"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_P2": {
+      "reply": "Que sustrato estas usando? Cuando fue el ultimo trasplante?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT11_ASESORAMIENTO_P3"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_P3": {
+      "reply": "Cada cuanto regas y en que momento del dia?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT11_ASESORAMIENTO_P4"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_P4": {
+      "reply": "Si podes mandame una foto de la planta para asesorarte mejor.",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT11_ASESORAMIENTO_RECOMMEND"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT12_VAPOS_P1": {
+      "reply": "Dale, ya tuviste vaporizador antes o seria tu primero?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT12_VAPOS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT12_VAPOS_P1_ROUTER": {
+      "router": {
+        "type": "keyword",
+        "routes": [
+          {
+            "keyword": "primero",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "nunca",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "no",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "ninguno",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "si",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "ya tuve",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "tengo",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "keyword": "tuve",
+            "next": "CAT12_VAPOS_RECOMMEND"
+          },
+          {
+            "default": true,
+            "next": "CAT12_VAPOS_P1_REPEAT"
+          }
+        ]
+      }
+    },
+    "CAT12_VAPOS_P1_REPEAT": {
+      "reply": "Perfecto, necesito saber. Es tu primer vaporizador o ya tuviste alguno?",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT12_VAPOS_P1_ROUTER"
+        }
+      ]
+    },
+    "CAT12_VAPOS_RECOMMEND": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "INFO_KB": {
+      "agent": "cami_default",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "DESPEDIDA": {
+      "reply": "De nada! Cualquier cosa escribime. Buen dia!",
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "END"
+        }
+      ]
+    },
+    "END": {
+      "end": true
+    }
+  },
+  "humanMode": {
+    "respectCooldown": true
+  }
+}

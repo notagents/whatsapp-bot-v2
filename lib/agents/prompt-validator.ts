@@ -1,5 +1,11 @@
 const MAX_PROMPT_LENGTH = 20_000;
-const ALLOWED_PLACEHOLDERS = ["{userID}", "{facts}", "{recap}", "{kbSection}"];
+const ALLOWED_PLACEHOLDERS = [
+  "{userID}",
+  "{facts}",
+  "{recap}",
+  "{kbSection}",
+  "{structuredContext}",
+];
 const VALID_MODELS = [
   "gpt-4o-mini",
   "gpt-4o",

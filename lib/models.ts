@@ -148,12 +148,24 @@ export type MemoryRecap = {
   updatedAt: number;
 };
 
+export type StructuredContext = {
+  environment?: "interior" | "exterior";
+  seedType?: "automatica" | "fotoperiodica";
+  budget?: number;
+  space?: string;
+  plantCount?: number;
+  hasEquipment?: boolean;
+  extractedAt: number;
+  lastUpdatedTurn?: ObjectId;
+};
+
 export type Memory = {
   _id?: ObjectId;
   whatsappId: string;
   userID: string;
   facts: MemoryFact[];
   recap: MemoryRecap;
+  structuredContext?: StructuredContext;
 };
 
 export type JobType =
