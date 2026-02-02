@@ -65,12 +65,13 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
   const db = await getDb();
   const col = db.collection<KbRow>(KB_ROWS_COLLECTION);
   const cap = Math.min(limit * 2, 50);
+  const baseMatch: Record<string, unknown> = { sessionId, tableKey };
+  if (tableKey === "products") baseMatch["data.publicado"] = true;
   let rows: KbRow[];
   try {
     const cursor = col
       .find({
-        sessionId,
-        tableKey,
+        ...baseMatch,
         $text: { $search: query },
       })
       .project({
@@ -86,8 +87,7 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
   } catch {
     const cursor = col
       .find({
-        sessionId,
-        tableKey,
+        ...baseMatch,
         $or: [
           { "search.name": { $regex: query.trim(), $options: "i" } },
           { "data.name": { $regex: query.trim(), $options: "i" } },
@@ -121,6 +121,7 @@ export async function queryRows(params: TableQueryParams): Promise<KbRow[]> {
   const { sessionId, tableKey, filter = {}, limit } = params;
   const db = await getDb();
   const match: Record<string, unknown> = { sessionId, tableKey };
+  if (tableKey === "products") match["data.publicado"] = true;
   for (const [key, value] of Object.entries(filter)) {
     match[`data.${key}`] = value;
   }
