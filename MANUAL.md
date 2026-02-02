@@ -15,7 +15,7 @@ El sistema es un **motor conversacional** que atiende conversaciones por WhatsAp
 3. Un **agente** (LLM) genera la respuesta usando **tools** y opcionalmente una **Knowledge Base** (KB).
 4. La respuesta se envía al usuario y se actualiza la **memoria** de la conversación.
 
-Todo esto es configurable por **sesión** desde la interfaz de administración.
+Todo esto es configurable por **sesión** desde la interfaz de administración. Los **flows** y los **prompts** de los agentes se guardan en la **base de datos** (versión draft y published), no en archivos del repositorio.
 
 ### Concepto de sesiones
 
@@ -62,14 +62,12 @@ Usa el dashboard para ver el estado global y entrar a configurar o probar cada s
 
 ### 3.2 Crear una nueva sesión
 
-Las sesiones que ves en el dashboard se basan en la configuración del servidor y, opcionalmente, en carpetas bajo `flows/`. Para añadir una sesión nueva desde filesystem:
+La lista de sesiones que ves en el dashboard la define la configuración del servidor. Para dar de alta un **nuevo bot** (nueva sesión) hay que registrarla en el servidor (consulta con el equipo técnico o la documentación de despliegue).
 
-1. En el repositorio, crea la carpeta `flows/session_<id>/` (ej: `flows/session_mi_bot/`).
-2. Dentro, crea un archivo `flow.json`. Puedes copiarlo de `flows/default/flow.json` o `flows/session_example/flow.json`.
-3. Ajusta el `flow.json` (modo simple o FSM; ver más adelante).
-4. Reinicia el servidor o espera a que cargue los flows desde disco (según tu despliegue).
+Una vez que la sesión existe y aparece en el dashboard:
 
-La nueva sesión debería aparecer en el dashboard y podrás configurarla desde `/ui/sessions/<id>` y probarla en `/sim/<id>`.
+- Toda la **configuración del flow** y los **prompts** se hace desde la interfaz (`/ui/sessions/[sessionId]`) y se almacena en la **base de datos**.
+- No es necesario editar archivos `flow.json` en el repositorio: el editor de la UI es la fuente de verdad.
 
 ---
 
@@ -84,13 +82,13 @@ En la página de configuración de una sesión tienes: **editor de flow**, **edi
 
 ### 4.2 Editor de flows
 
-- **Monaco Editor**: editor de JSON con coloreado de sintaxis. Escribes o pegas el `flow.json` aquí.
+- **Monaco Editor**: editor de JSON con coloreado de sintaxis. Escribes o pegas el JSON del flow aquí; el contenido se guarda en la base de datos (draft o published).
 - **Draft vs Published**:
   - **Draft**: versión en borrador. Los cambios no afectan a producción hasta que publiques.
   - **Published**: versión activa en producción (WhatsApp y, por defecto, simulador).
 - **Flujo recomendado**: Validar → Guardar draft → Probar en simulador (con runtime en `force_draft` si quieres) → Ver diff → Publicar.
 - **Runtime config** (selector en la misma página):
-  - **auto**: usa la versión published si existe; si no, usa el flow del filesystem.
+  - **auto**: usa la versión **published** guardada en la base de datos para producción; en simulador usa draft por defecto.
   - **force_draft**: fuerza el uso del draft (útil para probar cambios en el simulador).
   - **force_published**: fuerza la versión published.
 
@@ -208,12 +206,12 @@ Opcionalmente puedes definir `defaultRoute` y, en cada ruta, `examples` o `keywo
 
 ### 4.6 Workflow recomendado al editar flows
 
-1. Editar el JSON en el editor (draft).
+1. Editar el JSON en el editor (draft). Los cambios se guardan en la base de datos.
 2. Pulsar **Validate** para comprobar sintaxis y referencias.
-3. Guardar draft.
+3. Guardar draft (persiste en la base de datos).
 4. (Opcional) Poner runtime config en **force_draft** y probar en `/sim/[sessionId]`.
 5. Ver **Diff** entre draft y published.
-6. Cuando esté listo, pulsar **Publish** para que la versión publicada sea la que use producción.
+6. Cuando esté listo, pulsar **Publish** para copiar el draft a published; esa versión es la que usa producción (WhatsApp).
 
 ---
 
@@ -353,11 +351,11 @@ Puedes forzar draft o published en esa conversación de simulador añadiendo en 
 
 ### 9.1 Crear un bot desde cero
 
-1. Crear sesión en `flows/session_<id>/` con un `flow.json` simple (ver 4.3).
-2. En `/ui/sessions/<id>` publicar el flow (o dejarlo en draft y usar force_draft en simulador).
-3. En `/kb/<id>` crear al menos un documento Markdown (slug, título, contenido) y dejarlo active.
-4. Probar en `/sim/<id>` y ajustar prompt o flow según necesidad.
-5. Publicar flow y prompts cuando estén listos.
+1. Que la sesión esté dada de alta en el servidor y aparezca en el dashboard.
+2. Ir a `/ui/sessions/<id>`, crear el flow en el editor (ej. flow simple, ver 4.3), guardar draft y publicar.
+3. Configurar los prompts de los agentes que use el flow (draft y publicar).
+4. En `/kb/<id>` crear al menos un documento Markdown (slug, título, contenido) y dejarlo active.
+5. Probar en `/sim/<id>` y ajustar prompt o flow según necesidad; cuando esté listo, publicar flow y prompts.
 
 ### 9.2 Agregar una categoría a un FSM existente
 
@@ -412,9 +410,8 @@ Puedes forzar draft o published en esa conversación de simulador añadiendo en 
 
 ### Estados draft / published
 
-- **Draft**: cambios en progreso; no afectan producción hasta publicar.
-- **Published**: versión en producción (y por defecto en simulador si runtime está en auto).
-- Si no hay versión en base de datos, el sistema usa el `flow.json` del filesystem.
+- **Draft**: cambios en progreso; se guardan en la base de datos y no afectan a producción hasta publicar.
+- **Published**: versión en producción (WhatsApp); se almacena en la base de datos. En simulador, por defecto se usa draft si el runtime está en auto.
 
 ### Comandos útiles (con acceso a terminal)
 
@@ -427,5 +424,5 @@ Puedes forzar draft o published en esa conversación de simulador añadiendo en 
 
 - **README.md**: documentación técnica completa, arquitectura y APIs.
 - **docs/KB_SYNC_API.md**: sincronización de tablas KB desde n8n (o otro cliente).
-- **flows/session_example/**: ejemplo de flow FSM con router keyword.
-- **flows/session_iutopyBusiness/**: ejemplo de FSM complejo con muchas categorías y escalación.
+
+Los flows de ejemplo (simple, FSM con router keyword, FSM con muchas categorías) se pueden crear desde el editor en `/ui/sessions/[sessionId]` usando los JSON de las secciones 4.3 y 4.4 de este manual.
