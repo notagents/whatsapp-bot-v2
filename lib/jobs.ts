@@ -7,7 +7,16 @@ import {
   LOCKS_COLLECTION,
   AGENT_RUNS_COLLECTION,
 } from "./db";
-import type { Job, JobType, Turn, Message, AgentRun } from "./models";
+import type {
+  Job,
+  JobType,
+  Turn,
+  Message,
+  AgentRun,
+  ResponsePlan,
+  ResponsePlanPart,
+} from "./models";
+import type { HumanSendConfig } from "./flows/types";
 import {
   normalizeUserID,
   isSimulatorConversation,
@@ -31,6 +40,16 @@ export type EnqueueJobPayload =
   | {
       type: "sendReply";
       payload: { turnId: string; agentRunId: string };
+      scheduledFor?: number;
+    }
+  | {
+      type: "sendReplyPlan";
+      payload: { turnId: string; agentRunId: string };
+      scheduledFor?: number;
+    }
+  | {
+      type: "sendReplyPart";
+      payload: { turnId: string; partIndex: number };
       scheduledFor?: number;
     }
   | {
@@ -66,6 +85,18 @@ function getJobTypeAndPayload(enqueue: EnqueueJobPayload): {
     case "sendReply":
       return {
         type: "sendReply",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
+    case "sendReplyPlan":
+      return {
+        type: "sendReplyPlan",
+        payload: enqueue.payload,
+        scheduledFor: enqueue.scheduledFor ?? now,
+      };
+    case "sendReplyPart":
+      return {
+        type: "sendReplyPart",
         payload: enqueue.payload,
         scheduledFor: enqueue.scheduledFor ?? now,
       };
@@ -283,6 +314,12 @@ export async function processNextJob(): Promise<boolean> {
       case "sendReply":
         await processSendReplyImpl(job);
         break;
+      case "sendReplyPlan":
+        await processSendReplyPlan(job);
+        break;
+      case "sendReplyPart":
+        await processSendReplyPart(job);
+        break;
       case "memoryUpdate":
         await processMemoryUpdateImpl(job);
         break;
@@ -458,7 +495,7 @@ async function processRunAgentImpl(job: Job): Promise<void> {
   if (flowResult.assistantText) {
     await enqueueJob(
       {
-        type: "sendReply",
+        type: "sendReplyPlan",
         payload: {
           turnId: turnId.toString(),
           agentRunId: agentRunId.toString(),
@@ -563,6 +600,241 @@ async function processSendReplyImpl(job: Job): Promise<void> {
       },
     }
   );
+}
+
+function calculateDelay(
+  text: string,
+  config: HumanSendConfig,
+  _index: number
+): number {
+  const base =
+    config.minDelayMs + Math.random() * (config.maxDelayMs - config.minDelayMs);
+  const lengthFactor = Math.min(text.length * 2.5, config.maxDelayMs);
+  const delay = base + lengthFactor;
+  return Math.min(delay, config.maxDelayMs + 1500);
+}
+
+async function processSendReplyPlan(job: Job): Promise<void> {
+  const payload = job.payload as { turnId: string; agentRunId: string };
+  const db = await getDb();
+
+  const turn = await db.collection<Turn>(TURNS_COLLECTION).findOne({
+    _id: new ObjectId(payload.turnId),
+  });
+  if (!turn) throw new Error(`Turn not found: ${payload.turnId}`);
+
+  if (turn.responsePlan?.status) {
+    return;
+  }
+
+  const agentRun = await db
+    .collection<AgentRun>(AGENT_RUNS_COLLECTION)
+    .findOne({ _id: new ObjectId(payload.agentRunId) });
+  const assistantText = agentRun?.output?.assistantText;
+  if (!agentRun || !assistantText) {
+    throw new Error(`Agent run not found or no output: ${payload.agentRunId}`);
+  }
+
+  const fallbackToSingleReply = (): Promise<void> =>
+    enqueueJob(
+      {
+        type: "sendReply",
+        payload: { turnId: payload.turnId, agentRunId: payload.agentRunId },
+        scheduledFor: Date.now(),
+      },
+      { sessionId: turn.sessionId }
+    );
+
+  try {
+    const { resolveFlow } = await import("@/lib/flows/resolver");
+    const channel = turn.channel ?? "whatsapp";
+    const resolvedFlow = await resolveFlow(
+      turn.sessionId,
+      channel,
+      turn.configOverride
+    );
+    const humanSendConfig = resolvedFlow.config.humanSend;
+
+    if (
+      !humanSendConfig?.enabled ||
+      assistantText.length <= (humanSendConfig.threshold ?? 400)
+    ) {
+      await fallbackToSingleReply();
+      return;
+    }
+
+    const { splitMessage } = await import("@/lib/message-splitter");
+    const splitResult = await splitMessage(assistantText, {
+      maxParts: humanSendConfig.maxParts,
+      minPartChars: humanSendConfig.minPartChars,
+      maxPartChars: humanSendConfig.maxPartChars,
+      useLLM: humanSendConfig.useLLM ?? true,
+    });
+
+    const now = Date.now();
+    let cumulativeDelay = 0;
+    const parts: ResponsePlanPart[] = splitResult.parts.map((part, index) => {
+      const scheduledFor = now + cumulativeDelay;
+      if (index < splitResult.parts.length - 1) {
+        cumulativeDelay += calculateDelay(part.text, humanSendConfig, index);
+      }
+      return {
+        index,
+        text: part.text,
+        scheduledFor,
+      };
+    });
+
+    const plan: ResponsePlan = {
+      mode: "multi",
+      parts,
+      splitter: splitResult.splitter,
+      status: "planned",
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    await db
+      .collection<Turn>(TURNS_COLLECTION)
+      .updateOne({ _id: turn._id }, { $set: { responsePlan: plan } });
+
+    for (const part of parts) {
+      await enqueueJob(
+        {
+          type: "sendReplyPart",
+          payload: { turnId: payload.turnId, partIndex: part.index },
+          scheduledFor: part.scheduledFor,
+        },
+        { sessionId: turn.sessionId }
+      );
+    }
+
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turn._id },
+      {
+        $set: {
+          "responsePlan.status": "sending",
+          "responsePlan.updatedAt": Date.now(),
+        },
+      }
+    );
+  } catch (err) {
+    console.warn("[sendReplyPlan] Fallback to single reply:", err);
+    await fallbackToSingleReply();
+  }
+}
+
+async function processSendReplyPart(job: Job): Promise<void> {
+  const { getResponsesEnabled, isInCooldown } = await import(
+    "@/lib/conversation-state"
+  );
+  const { getActualJid } = await import("@/lib/conversation");
+  const { sendWhatsAppMessage } = await import("@/lib/send-whatsapp");
+  const payload = job.payload as { turnId: string; partIndex: number };
+  const db = await getDb();
+
+  const turn = await db.collection<Turn>(TURNS_COLLECTION).findOne({
+    _id: new ObjectId(payload.turnId),
+  });
+  if (!turn) throw new Error(`Turn not found: ${payload.turnId}`);
+
+  if (!turn.responsePlan) {
+    throw new Error(`No response plan found for turn: ${payload.turnId}`);
+  }
+
+  if (turn.responsePlan.status === "aborted") {
+    return;
+  }
+
+  const responseConfig = await getResponsesEnabled(turn.whatsappId);
+  if (!responseConfig.enabled || isInCooldown(responseConfig)) {
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turn._id },
+      {
+        $set: {
+          "responsePlan.status": "aborted",
+          "responsePlan.updatedAt": Date.now(),
+        },
+      }
+    );
+    return;
+  }
+
+  const part = turn.responsePlan.parts.find(
+    (p) => p.index === payload.partIndex
+  );
+  if (!part) {
+    throw new Error(`Part ${payload.partIndex} not found in plan`);
+  }
+
+  if (part.sentAt) {
+    return;
+  }
+
+  let messageId: ObjectId | undefined;
+
+  if (isSimulatorConversation(turn.whatsappId)) {
+    const parsed = parseSimulatorConversationId(turn.whatsappId);
+    const botDoc: Message = {
+      whatsappId: turn.whatsappId,
+      sessionId: parsed?.sessionId ?? turn.sessionId,
+      userID: parsed?.testUserId ?? turn.userID,
+      channel: "simulator",
+      messageText: part.text,
+      messageTime: Math.floor(Date.now() / 1000),
+      source: "bot",
+      processed: true,
+      meta: {
+        turnId: turn._id,
+        partIndex: part.index,
+      },
+    };
+    const insertResult = await db
+      .collection<Message>(MESSAGES_COLLECTION)
+      .insertOne(botDoc);
+    messageId = insertResult.insertedId;
+  } else {
+    const jid = getActualJid(turn.whatsappId);
+    const result = await sendWhatsAppMessage({
+      sessionId: turn.sessionId,
+      jid,
+      text: part.text,
+      whatsappId: turn.whatsappId,
+    });
+    messageId = result.messageId;
+    if (messageId) {
+      await db
+        .collection<Message>(MESSAGES_COLLECTION)
+        .updateOne(
+          { _id: messageId },
+          { $set: { meta: { turnId: turn._id, partIndex: part.index } } }
+        );
+    }
+  }
+
+  await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+    { _id: turn._id, "responsePlan.parts.index": part.index },
+    {
+      $set: {
+        "responsePlan.parts.$.sentAt": Date.now(),
+        ...(messageId && { "responsePlan.parts.$.messageId": messageId }),
+        "responsePlan.updatedAt": Date.now(),
+      },
+    }
+  );
+
+  const isLastPart = part.index === turn.responsePlan.parts.length - 1;
+  if (isLastPart) {
+    await db.collection<Turn>(TURNS_COLLECTION).updateOne(
+      { _id: turn._id },
+      {
+        $set: {
+          "responsePlan.status": "done",
+          "responsePlan.updatedAt": Date.now(),
+        },
+      }
+    );
+  }
 }
 
 async function processKbReindexMarkdown(job: Job): Promise<void> {

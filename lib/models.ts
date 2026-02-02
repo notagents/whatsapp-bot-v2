@@ -42,6 +42,11 @@ export type Message = {
   processed: boolean;
   botMessageId?: string;
   configOverride?: "draft" | "published";
+  meta?: {
+    turnId?: ObjectId;
+    partIndex?: number;
+    planId?: string;
+  };
 };
 
 export type ResponsesEnabled = {
@@ -76,6 +81,30 @@ export type TurnMetaFlow = {
   kbChunks?: number;
 };
 
+export type ResponsePlanMode = "single" | "multi";
+export type ResponsePlanStatus = "planned" | "sending" | "done" | "aborted";
+export type SplitterType = "heuristic" | "llm";
+
+export type ResponsePlanPart = {
+  index: number;
+  text: string;
+  scheduledFor: number;
+  sentAt?: number;
+  messageId?: ObjectId;
+};
+
+export type ResponsePlan = {
+  mode: ResponsePlanMode;
+  parts: ResponsePlanPart[];
+  splitter: {
+    type: SplitterType;
+    version: string;
+  };
+  status: ResponsePlanStatus;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type Turn = {
   _id?: ObjectId;
   whatsappId: string;
@@ -88,6 +117,7 @@ export type Turn = {
   status: TurnStatus;
   router?: TurnRouter;
   response?: TurnResponse;
+  responsePlan?: ResponsePlan;
   meta?: { rawEventIds?: string[]; flow?: TurnMetaFlow };
   configOverride?: "draft" | "published";
   sessionNumber?: number;
@@ -211,6 +241,8 @@ export type JobType =
   | "debounceTurn"
   | "runAgent"
   | "sendReply"
+  | "sendReplyPlan"
+  | "sendReplyPart"
   | "memoryUpdate"
   | "kbReindexMarkdown";
 
