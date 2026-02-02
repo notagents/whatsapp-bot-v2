@@ -89,11 +89,14 @@ export async function executeKbTableTool(
     case "kb_table_lookup": {
       const query = String(a?.query ?? "").trim();
       if (!query) return { error: "query required", results: [] };
+      const lookupFilter =
+        tableKey === "products" ? { publicado: true } : undefined;
       const rows = await lookupRows({
         sessionId,
         tableKey,
         query,
         limit: typeof a?.limit === "number" ? Math.min(a.limit, 50) : 10,
+        filter: lookupFilter,
       });
       return {
         results: rows.map((r) => ({ pk: r.pk, data: r.data })),
@@ -111,10 +114,14 @@ export async function executeKbTableTool(
         a?.filter && typeof a.filter === "object" && !Array.isArray(a.filter)
           ? (a.filter as Record<string, unknown>)
           : undefined;
+      const mergedFilter =
+        tableKey === "products"
+          ? { publicado: true, ...filter }
+          : filter ?? undefined;
       const rows = await queryRows({
         sessionId,
         tableKey,
-        filter,
+        filter: mergedFilter,
         limit,
       });
       return {

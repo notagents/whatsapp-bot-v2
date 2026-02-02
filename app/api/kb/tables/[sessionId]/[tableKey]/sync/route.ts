@@ -26,6 +26,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     mode?: string;
     primaryKey?: string;
     rows?: unknown[];
+    batchIndex?: number;
+    isLastBatch?: boolean;
   };
   try {
     body = await request.json();
@@ -33,7 +35,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { batchId, mode, primaryKey, rows } = body;
+  const { batchId, mode, primaryKey, rows, batchIndex, isLastBatch } = body;
   if (
     !batchId ||
     typeof batchId !== "string" ||
@@ -63,6 +65,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     mode: mode === "mirror" ? ("mirror" as const) : ("mirror" as const),
     primaryKey: String(primaryKey),
     rows: rows as Array<Record<string, unknown>>,
+    ...(typeof batchIndex === "number" && { batchIndex }),
+    ...(typeof isLastBatch === "boolean" && { isLastBatch }),
   };
 
   const result = await syncTable(sessionId, tableKey, payload);

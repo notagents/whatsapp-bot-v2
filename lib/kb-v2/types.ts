@@ -75,3 +75,13 @@ export type KbSyncRun = {
   };
   error?: string;
 };
+
+export type KbSyncBatchPks = {
+  _id?: ObjectId;
+  sessionId: string;
+  tableKey: string;
+  batchId: string;
+  batchIndex: number;
+  pks: string[];
+  receivedAt: number;
+};

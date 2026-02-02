@@ -7,6 +7,7 @@ export type TableLookupParams = {
   tableKey: string;
   query: string;
   limit: number;
+  filter?: Record<string, unknown>;
 };
 
 export type TableGetParams = {
@@ -58,15 +59,17 @@ function scoreRowForQuery(
 }
 
 export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
-  const { sessionId, tableKey, query, limit } = params;
+  const { sessionId, tableKey, query, limit, filter = {} } = params;
   if (!query?.trim()) {
-    return queryRows({ sessionId, tableKey, limit });
+    return queryRows({ sessionId, tableKey, limit, filter });
   }
   const db = await getDb();
   const col = db.collection<KbRow>(KB_ROWS_COLLECTION);
   const cap = Math.min(limit * 2, 50);
   const baseMatch: Record<string, unknown> = { sessionId, tableKey };
-  if (tableKey === "products") baseMatch["data.publicado"] = true;
+  for (const [key, value] of Object.entries(filter)) {
+    baseMatch[`data.${key}`] = value;
+  }
   let rows: KbRow[];
   try {
     const cursor = col
@@ -121,7 +124,6 @@ export async function queryRows(params: TableQueryParams): Promise<KbRow[]> {
   const { sessionId, tableKey, filter = {}, limit } = params;
   const db = await getDb();
   const match: Record<string, unknown> = { sessionId, tableKey };
-  if (tableKey === "products") match["data.publicado"] = true;
   for (const [key, value] of Object.entries(filter)) {
     match[`data.${key}`] = value;
   }
