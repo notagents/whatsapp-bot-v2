@@ -91,20 +91,56 @@ type ResponsesEnabledResponse = {
   disabledUntilUTC: string | null;
 };
 
+type ContextSnapshotStructured = {
+  environment?: string;
+  seedType?: string;
+  budget?: number;
+  space?: string;
+  plantCount?: number;
+  hasEquipment?: boolean;
+  extractedAt: number;
+  lastUpdatedTurn?: string;
+};
+type ContextSnapshotResponse = {
+  memory: {
+    structuredContext?: ContextSnapshotStructured | null;
+    facts: Array<{
+      key: string;
+      value: string;
+      confidence: number;
+      updatedAt: number;
+    }>;
+    recap: { text: string; updatedAt: number };
+  };
+  state: Record<string, unknown>;
+  recentMessages: Array<{
+    messageText: string;
+    source: "user" | "bot";
+    messageTime: number;
+  }>;
+};
+
 type Props = {
   conversationId: string | null;
   onResponsesUpdated?: () => void;
 };
 
+type DebugTab = "turno" | "contexto";
+
 export function SimulatorDebugPanel({
   conversationId,
   onResponsesUpdated,
 }: Props) {
+  const [activeTab, setActiveTab] = useState<DebugTab>("turno");
   const [lastTurn, setLastTurn] = useState<Turn | null>(null);
   const [lastAgentRun, setLastAgentRun] = useState<AgentRun | null>(null);
   const [responsesEnabled, setResponsesEnabled] = useState(true);
   const [disabledUntilUTC, setDisabledUntilUTC] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [contextSnapshot, setContextSnapshot] =
+    useState<ContextSnapshotResponse | null>(null);
+  const [contextLoading, setContextLoading] = useState(false);
+  const [contextError, setContextError] = useState(false);
 
   useEffect(() => {
     if (!conversationId) {
@@ -162,6 +198,34 @@ export function SimulatorDebugPanel({
       .catch(() => {});
   }, [conversationId, onResponsesUpdated]);
 
+  useEffect(() => {
+    if (!conversationId || activeTab !== "contexto") {
+      setContextSnapshot(null);
+      setContextError(false);
+      return;
+    }
+    const loadContext = () => {
+      setContextLoading(true);
+      setContextError(false);
+      fetch(`/api/conversations/${encodeURIComponent(conversationId)}/context`)
+        .then((res) =>
+          res.ok ? res.json() : Promise.reject(new Error("Failed"))
+        )
+        .then((data: ContextSnapshotResponse) => {
+          setContextSnapshot(data);
+          setContextError(false);
+        })
+        .catch(() => {
+          setContextSnapshot(null);
+          setContextError(true);
+        })
+        .finally(() => setContextLoading(false));
+    };
+    loadContext();
+    const interval = setInterval(loadContext, 5000);
+    return () => clearInterval(interval);
+  }, [conversationId, activeTab]);
+
   async function handleEnableResponses() {
     if (!conversationId) return;
     setLoading(true);
@@ -198,179 +262,367 @@ export function SimulatorDebugPanel({
   }
 
   return (
-    <aside className="w-72 shrink-0 border-l bg-muted/20 overflow-auto">
-      <div className="p-3 space-y-3">
-        <Card>
-          <CardHeader className="py-2">
-            <CardTitle className="text-sm">Último turn</CardTitle>
-          </CardHeader>
-          <CardContent className="py-2 text-sm space-y-1">
-            {lastTurn ? (
-              <>
-                <p className="font-mono text-xs truncate">
-                  {String(lastTurn._id)}
-                </p>
-                <Link
-                  href={`/api/turns/${lastTurn._id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary underline text-xs"
-                >
-                  GET /api/turns/{String(lastTurn._id)}
-                </Link>
-                <p className="text-muted-foreground">
-                  Estado: {lastTurn.status}
-                </p>
-                {lastTurn.router && (
-                  <p className="text-muted-foreground">
-                    Agent: {lastTurn.router.agentId}
-                  </p>
-                )}
-                {lastTurn.meta?.flow?.state && (
-                  <p className="text-muted-foreground truncate">
-                    Flow state: {lastTurn.meta.flow.state}
-                  </p>
-                )}
-                {lastTurn.response?.blockedReason && (
-                  <p className="text-destructive text-xs">
-                    Bloqueado: {lastTurn.response.blockedReason}
-                  </p>
-                )}
-              </>
-            ) : (
-              <p className="text-muted-foreground">—</p>
-            )}
-          </CardContent>
-        </Card>
-        {lastAgentRun?.output?.aiClassification && (
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle className="text-sm">AI Classification</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2 text-sm space-y-2">
-              <p className="font-mono text-xs">
-                Route: {lastAgentRun.output.aiClassification.selectedRoute}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                Confidence:{" "}
-                {(
-                  lastAgentRun.output.aiClassification.confidence * 100
-                ).toFixed(0)}
-                %
-              </p>
-              <p
-                className="text-muted-foreground text-xs line-clamp-2"
-                title={lastAgentRun.output.aiClassification.reasoning}
-              >
-                {lastAgentRun.output.aiClassification.reasoning}
-              </p>
-              <p className="text-muted-foreground text-xs">
-                Type: {lastAgentRun.output.aiClassification.routerType}
-              </p>
-            </CardContent>
-          </Card>
-        )}
-        {lastAgentRun?.output && (
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle className="text-sm">KB Calls</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2 text-sm space-y-3">
-              {lastAgentRun.output.toolCalls?.filter((tc) =>
-                isKbTool(tc.name)
-              ).length ? (
-                lastAgentRun.output.toolCalls
-                  .filter((tc) => isKbTool(tc.name))
-                  .map((tc, i) => (
-                    <div
-                      key={i}
-                      className="rounded border bg-muted/30 p-2 space-y-1 text-xs"
+    <aside className="w-72 shrink-0 border-l bg-muted/20 overflow-auto flex flex-col">
+      <div className="border-b flex shrink-0">
+        <button
+          type="button"
+          onClick={() => setActiveTab("turno")}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "turno"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Turno
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("contexto")}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === "contexto"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Contexto
+        </button>
+      </div>
+      <div className="p-3 space-y-3 flex-1 overflow-auto">
+        {activeTab === "turno" && (
+          <>
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm">Último turn</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2 text-sm space-y-1">
+                {lastTurn ? (
+                  <>
+                    <p className="font-mono text-xs truncate">
+                      {String(lastTurn._id)}
+                    </p>
+                    <Link
+                      href={`/api/turns/${lastTurn._id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-primary underline text-xs"
                     >
-                      <p className="font-mono font-medium">{tc.name}</p>
-                      <p className="text-muted-foreground break-words">
-                        Request: {formatKbRequest(tc.name, tc.args)}
-                      </p>
+                      GET /api/turns/{String(lastTurn._id)}
+                    </Link>
+                    <p className="text-muted-foreground">
+                      Estado: {lastTurn.status}
+                    </p>
+                    {lastTurn.router && (
                       <p className="text-muted-foreground">
-                        Result: {formatKbResult(tc.name, tc.result)}
+                        Agent: {lastTurn.router.agentId}
                       </p>
-                    </div>
-                  ))
-              ) : (
-                <p className="text-muted-foreground text-xs">
-                  No se llamo a ninguna KB en este turno.
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        )}
-        {lastAgentRun?.output?.kbUsage && (
-          <Card>
-            <CardHeader className="py-2">
-              <CardTitle className="text-sm">KB Usage</CardTitle>
-            </CardHeader>
-            <CardContent className="py-2 text-sm space-y-2">
-              {lastAgentRun.output.kbUsage.mdChunks &&
-                lastAgentRun.output.kbUsage.mdChunks.length > 0 && (
-                  <div>
-                    <p className="text-muted-foreground text-xs font-medium">
-                      MD chunks
-                    </p>
-                    <ul className="list-disc list-inside text-xs mt-1 space-y-0.5">
-                      {lastAgentRun.output.kbUsage.mdChunks.map((c, i) => (
-                        <li key={i}>
-                          {c.slug}
-                          {c.chunkId ? ` (${c.chunkId.slice(0, 8)})` : ""}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
+                    )}
+                    {lastTurn.meta?.flow?.state && (
+                      <p className="text-muted-foreground truncate">
+                        Flow state: {lastTurn.meta.flow.state}
+                      </p>
+                    )}
+                    {lastTurn.response?.blockedReason && (
+                      <p className="text-destructive text-xs">
+                        Bloqueado: {lastTurn.response.blockedReason}
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">—</p>
                 )}
-              {lastAgentRun.output.kbUsage.tableRows &&
-                lastAgentRun.output.kbUsage.tableRows.length > 0 && (
-                  <div>
-                    <p className="text-muted-foreground text-xs font-medium">
-                      Table rows
-                    </p>
-                    <ul className="list-disc list-inside text-xs mt-1 space-y-0.5">
-                      {lastAgentRun.output.kbUsage.tableRows.map((r, i) => (
-                        <li key={i}>
-                          {r.tableKey} / {r.pk}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
-              {!lastAgentRun.output.kbUsage.mdChunks?.length &&
-                !lastAgentRun.output.kbUsage.tableRows?.length && (
-                  <p className="text-muted-foreground text-xs">—</p>
-                )}
-            </CardContent>
-          </Card>
-        )}
-        <Card>
-          <CardHeader className="py-2">
-            <CardTitle className="text-sm">Respuestas</CardTitle>
-          </CardHeader>
-          <CardContent className="py-2 text-sm space-y-2">
-            <p className="text-muted-foreground">
-              Habilitadas: {responsesEnabled ? "Sí" : "No"}
-            </p>
-            {inCooldown && (
-              <p className="text-muted-foreground text-xs">
-                Cooldown hasta: {disabledUntilUTC}
-              </p>
+              </CardContent>
+            </Card>
+            {lastAgentRun?.output?.aiClassification && (
+              <Card>
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">AI Classification</CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 text-sm space-y-2">
+                  <p className="font-mono text-xs">
+                    Route: {lastAgentRun.output.aiClassification.selectedRoute}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Confidence:{" "}
+                    {(
+                      lastAgentRun.output.aiClassification.confidence * 100
+                    ).toFixed(0)}
+                    %
+                  </p>
+                  <p
+                    className="text-muted-foreground text-xs line-clamp-2"
+                    title={lastAgentRun.output.aiClassification.reasoning}
+                  >
+                    {lastAgentRun.output.aiClassification.reasoning}
+                  </p>
+                  <p className="text-muted-foreground text-xs">
+                    Type: {lastAgentRun.output.aiClassification.routerType}
+                  </p>
+                </CardContent>
+              </Card>
             )}
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleEnableResponses}
-              disabled={loading || (responsesEnabled && !inCooldown)}
-            >
-              {loading ? "…" : "Enable / Clear cooldown"}
-            </Button>
-          </CardContent>
-        </Card>
+            {lastAgentRun?.output && (
+              <Card>
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">KB Calls</CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 text-sm space-y-3">
+                  {lastAgentRun.output.toolCalls?.filter((tc) =>
+                    isKbTool(tc.name)
+                  ).length ? (
+                    lastAgentRun.output.toolCalls
+                      .filter((tc) => isKbTool(tc.name))
+                      .map((tc, i) => (
+                        <div
+                          key={i}
+                          className="rounded border bg-muted/30 p-2 space-y-1 text-xs"
+                        >
+                          <p className="font-mono font-medium">{tc.name}</p>
+                          <p className="text-muted-foreground wrap-break-word">
+                            Request: {formatKbRequest(tc.name, tc.args)}
+                          </p>
+                          <p className="text-muted-foreground">
+                            Result: {formatKbResult(tc.name, tc.result)}
+                          </p>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-muted-foreground text-xs">
+                      No se llamo a ninguna KB en este turno.
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            )}
+            {lastAgentRun?.output?.kbUsage && (
+              <Card>
+                <CardHeader className="py-2">
+                  <CardTitle className="text-sm">KB Usage</CardTitle>
+                </CardHeader>
+                <CardContent className="py-2 text-sm space-y-2">
+                  {lastAgentRun.output.kbUsage.mdChunks &&
+                    lastAgentRun.output.kbUsage.mdChunks.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium">
+                          MD chunks
+                        </p>
+                        <ul className="list-disc list-inside text-xs mt-1 space-y-0.5">
+                          {lastAgentRun.output.kbUsage.mdChunks.map((c, i) => (
+                            <li key={i}>
+                              {c.slug}
+                              {c.chunkId ? ` (${c.chunkId.slice(0, 8)})` : ""}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  {lastAgentRun.output.kbUsage.tableRows &&
+                    lastAgentRun.output.kbUsage.tableRows.length > 0 && (
+                      <div>
+                        <p className="text-muted-foreground text-xs font-medium">
+                          Table rows
+                        </p>
+                        <ul className="list-disc list-inside text-xs mt-1 space-y-0.5">
+                          {lastAgentRun.output.kbUsage.tableRows.map((r, i) => (
+                            <li key={i}>
+                              {r.tableKey} / {r.pk}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  {!lastAgentRun.output.kbUsage.mdChunks?.length &&
+                    !lastAgentRun.output.kbUsage.tableRows?.length && (
+                      <p className="text-muted-foreground text-xs">—</p>
+                    )}
+                </CardContent>
+              </Card>
+            )}
+            <Card>
+              <CardHeader className="py-2">
+                <CardTitle className="text-sm">Respuestas</CardTitle>
+              </CardHeader>
+              <CardContent className="py-2 text-sm space-y-2">
+                <p className="text-muted-foreground">
+                  Habilitadas: {responsesEnabled ? "Sí" : "No"}
+                </p>
+                {inCooldown && (
+                  <p className="text-muted-foreground text-xs">
+                    Cooldown hasta: {disabledUntilUTC}
+                  </p>
+                )}
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleEnableResponses}
+                  disabled={loading || (responsesEnabled && !inCooldown)}
+                >
+                  {loading ? "…" : "Enable / Clear cooldown"}
+                </Button>
+              </CardContent>
+            </Card>
+          </>
+        )}
+        {activeTab === "contexto" && (
+          <ContextTabContent
+            snapshot={contextSnapshot}
+            loading={contextLoading}
+            error={contextError}
+          />
+        )}
       </div>
     </aside>
+  );
+}
+
+function ContextTabContent({
+  snapshot,
+  loading,
+  error,
+}: {
+  snapshot: ContextSnapshotResponse | null;
+  loading: boolean;
+  error: boolean;
+}) {
+  if (loading && !snapshot) {
+    return (
+      <p className="text-muted-foreground text-sm py-4">Cargando contexto…</p>
+    );
+  }
+  if (error) {
+    return (
+      <p className="text-destructive text-sm py-4">Error al cargar contexto.</p>
+    );
+  }
+  if (!snapshot) {
+    return (
+      <p className="text-muted-foreground text-sm py-4">
+        Selecciona una conversación.
+      </p>
+    );
+  }
+  const { memory, state, recentMessages } = snapshot;
+  const sc = memory.structuredContext;
+  return (
+    <div className="space-y-3">
+      {sc && (
+        <Card>
+          <CardHeader className="py-2">
+            <CardTitle className="text-sm">Contexto estructurado</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 text-sm space-y-1">
+            {sc.environment != null && (
+              <p className="text-muted-foreground">
+                environment: {sc.environment}
+              </p>
+            )}
+            {sc.seedType != null && (
+              <p className="text-muted-foreground">seedType: {sc.seedType}</p>
+            )}
+            {sc.budget != null && (
+              <p className="text-muted-foreground">budget: {sc.budget}</p>
+            )}
+            {sc.space != null && (
+              <p className="text-muted-foreground">space: {sc.space}</p>
+            )}
+            {sc.plantCount != null && (
+              <p className="text-muted-foreground">
+                plantCount: {sc.plantCount}
+              </p>
+            )}
+            {sc.hasEquipment != null && (
+              <p className="text-muted-foreground">
+                hasEquipment: {String(sc.hasEquipment)}
+              </p>
+            )}
+            <p className="text-muted-foreground text-xs">
+              extractedAt:{" "}
+              {sc.extractedAt ? new Date(sc.extractedAt).toLocaleString() : "—"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      {(memory.facts?.length ?? 0) > 0 && (
+        <Card>
+          <CardHeader className="py-2">
+            <CardTitle className="text-sm">Memory · Facts</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 text-sm space-y-2">
+            <ul className="list-disc list-inside text-xs text-muted-foreground space-y-1">
+              {memory.facts.map((f, i) => (
+                <li key={i}>
+                  <span className="font-medium text-foreground">{f.key}</span>:{" "}
+                  {f.value}
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+      {(memory.recap?.text?.trim() ?? "") !== "" && (
+        <Card>
+          <CardHeader className="py-2">
+            <CardTitle className="text-sm">Memory · Recap</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 text-sm space-y-1">
+            <p className="text-muted-foreground text-xs whitespace-pre-wrap">
+              {memory.recap.text}
+            </p>
+            <p className="text-muted-foreground text-xs">
+              updatedAt:{" "}
+              {memory.recap.updatedAt
+                ? new Date(memory.recap.updatedAt).toLocaleString()
+                : "—"}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+      {Object.keys(state).length > 0 && (
+        <Card>
+          <CardHeader className="py-2">
+            <CardTitle className="text-sm">State</CardTitle>
+          </CardHeader>
+          <CardContent className="py-2 text-sm">
+            <pre className="font-mono text-xs text-muted-foreground overflow-x-auto whitespace-pre-wrap wrap-break-word">
+              {JSON.stringify(state, null, 2)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+      <Card>
+        <CardHeader className="py-2">
+          <CardTitle className="text-sm">
+            Mensajes recientes ({recentMessages.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="py-2 text-sm space-y-2">
+          {recentMessages.length === 0 ? (
+            <p className="text-muted-foreground text-xs">—</p>
+          ) : (
+            <ul className="space-y-1.5 text-xs">
+              {recentMessages.slice(0, 10).map((m, i) => (
+                <li
+                  key={i}
+                  className={`${
+                    m.source === "user"
+                      ? "text-muted-foreground"
+                      : "text-foreground"
+                  }`}
+                >
+                  <span className="font-medium">
+                    {m.source === "user" ? "Usuario" : "Bot"}:
+                  </span>{" "}
+                  <span className="wrap-break-word">{m.messageText}</span>
+                </li>
+              ))}
+              {recentMessages.length > 10 && (
+                <li className="text-muted-foreground">
+                  … y {recentMessages.length - 10} más
+                </li>
+              )}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
