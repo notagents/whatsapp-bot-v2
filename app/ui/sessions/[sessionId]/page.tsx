@@ -481,6 +481,15 @@ export default function SessionConfigPage() {
                     Conversations
                   </Link>
                 </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link
+                    href={`/ui/sessions/${encodeURIComponent(
+                      sessionId
+                    )}/monitor`}
+                  >
+                    Monitor
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>

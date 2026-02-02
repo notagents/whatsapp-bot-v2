@@ -303,6 +303,7 @@ export async function ensureIndexes(): Promise<void> {
   const db = await getDb();
   const messages = db.collection<Message>(MESSAGES_COLLECTION);
   await messages.createIndex({ whatsappId: 1, messageTime: -1 });
+  await messages.createIndex({ sessionId: 1, channel: 1, messageTime: -1 });
   await messages.createIndex({ whatsappId: 1, processed: 1, source: 1 });
   const responsesEnabled = db.collection<ResponsesEnabled>(
     RESPONSES_ENABLED_COLLECTION

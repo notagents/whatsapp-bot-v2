@@ -1,12 +1,23 @@
 import { NextResponse } from "next/server";
 import { ObjectId } from "mongodb";
-import { getDb, TURNS_COLLECTION, MESSAGES_COLLECTION, AGENT_RUNS_COLLECTION } from "@/lib/db";
+import {
+  getDb,
+  TURNS_COLLECTION,
+  MESSAGES_COLLECTION,
+  AGENT_RUNS_COLLECTION,
+} from "@/lib/db";
 import type { Turn, Message, AgentRun } from "@/lib/models";
+import { requireAuth } from "@/lib/ui-auth-middleware";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ turnId: string }> }
 ) {
+  try {
+    await requireAuth(request);
+  } catch (res) {
+    return res as Response;
+  }
   try {
     const { turnId } = await params;
     const db = await getDb();
@@ -27,9 +38,6 @@ export async function GET(
     return NextResponse.json({ turn, messages, agentRuns });
   } catch (err) {
     console.error("[turn GET]", err);
-    return NextResponse.json(
-      { error: "Failed to get turn" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to get turn" }, { status: 500 });
   }
 }
