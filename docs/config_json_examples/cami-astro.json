@@ -306,9 +306,7 @@
     },
     "CAT1_SEMILLAS_P1": {
       "reply": "Dale, para ayudarte bien primero necesito esto. Vas a cultivar en interior o exterior?",
-      "skipIfContext": [
-        { "key": "environment", "next": "CAT1_SEMILLAS_P2" }
-      ],
+      "skipIfContext": [{ "key": "environment", "next": "CAT1_SEMILLAS_P2" }],
       "transitions": [
         {
           "match": {
@@ -363,9 +361,7 @@
     },
     "CAT1_SEMILLAS_P1_REPEAT": {
       "reply": "Perfecto, para ubicarte bien necesito una cosa. Es interior o exterior?",
-      "skipIfContext": [
-        { "key": "environment", "next": "CAT1_SEMILLAS_P2" }
-      ],
+      "skipIfContext": [{ "key": "environment", "next": "CAT1_SEMILLAS_P2" }],
       "transitions": [
         {
           "match": {
@@ -486,6 +482,9 @@
     },
     "CAT2_SUSTRATOS_P1": {
       "reply": "Dale, para recomendarte bien. Vas a usar fertilizantes o queres algo completo que no necesite fertilizar?",
+      "skipIfContext": [
+        { "key": "substratePreference", "next": "CAT2_SUSTRATOS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -540,6 +539,9 @@
     },
     "CAT2_SUSTRATOS_P1_REPEAT": {
       "reply": "Perfecto, necesito saber eso. Preferis un sustrato completo que casi no necesite fertilizar o vas a usar fertilizantes?",
+      "skipIfContext": [
+        { "key": "substratePreference", "next": "CAT2_SUSTRATOS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -572,6 +574,9 @@
     },
     "CAT3_FERTILIZANTES_P1": {
       "reply": "Dale, para asesorarte bien. En que etapa estan tus plantas? Vege o flora?",
+      "skipIfContext": [
+        { "key": "cultivationPhase", "next": "CAT3_FERTILIZANTES_P2" }
+      ],
       "transitions": [
         {
           "match": {
@@ -626,6 +631,10 @@
     },
     "CAT4_ILUMINACION_P1": {
       "reply": "Dale, para recomendarte bien. Cuantas plantas vas a cultivar o de que tamano es tu espacio?",
+      "skipIfContext": [
+        { "key": "spaceSize", "next": "CAT4_ILUMINACION_P1_ROUTER" },
+        { "key": "plantCount", "next": "CAT4_ILUMINACION_P1_ROUTER" }
+      ],
       "transitions": [
         {
           "match": {
@@ -673,6 +682,10 @@
     },
     "CAT4_ILUMINACION_P1_REPEAT": {
       "reply": "Perfecto, necesito saber eso para ubicarte bien. Cuantas plantas o que medida tiene tu espacio? Por ejemplo 60x60, 80x80, etc",
+      "skipIfContext": [
+        { "key": "spaceSize", "next": "CAT4_ILUMINACION_P1_ROUTER" },
+        { "key": "plantCount", "next": "CAT4_ILUMINACION_P1_ROUTER" }
+      ],
       "transitions": [
         {
           "match": {
@@ -747,6 +760,7 @@
     },
     "CAT5_CARPAS_P1": {
       "reply": "Dale, cuantas plantas pensas cultivar?",
+      "skipIfContext": [{ "key": "plantCount", "next": "CAT5_CARPAS_P2" }],
       "transitions": [
         {
           "match": {
@@ -848,6 +862,7 @@
     },
     "CAT6_VENTILACION_P1": {
       "reply": "Dale, de que tamano es tu carpa o espacio?",
+      "skipIfContext": [{ "key": "spaceSize", "next": "CAT6_VENTILACION_P2" }],
       "transitions": [
         {
           "match": {
@@ -870,6 +885,9 @@
     },
     "CAT6_VENTILACION_P3": {
       "reply": "Ya tenes sistema de ventilacion o arrancas de cero?",
+      "skipIfContext": [
+        { "key": "hasEquipment", "next": "CAT6_VENTILACION_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -924,6 +942,9 @@
     },
     "CAT7_PLAGAS_P3": {
       "reply": "Es cultivo interior o exterior?",
+      "skipIfContext": [
+        { "key": "environment", "next": "CAT7_PLAGAS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -967,6 +988,9 @@
     },
     "CAT8_ACCESORIOS_P2": {
       "reply": "Es para complementar tu cultivo o estas arrancando?",
+      "skipIfContext": [
+        { "key": "hasEquipment", "next": "CAT8_ACCESORIOS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -999,6 +1023,7 @@
     },
     "CAT9_SETUP_P1": {
       "reply": "Dale, tenes espacio pensado? Placard, habitacion, balcon?",
+      "skipIfContext": [{ "key": "space", "next": "CAT9_SETUP_P2" }],
       "transitions": [
         {
           "match": {
@@ -1010,6 +1035,7 @@
     },
     "CAT9_SETUP_P2": {
       "reply": "Cuantas plantas para empezar?",
+      "skipIfContext": [{ "key": "plantCount", "next": "CAT9_SETUP_P3" }],
       "transitions": [
         {
           "match": {
@@ -1021,6 +1047,7 @@
     },
     "CAT9_SETUP_P3": {
       "reply": "Tenes algo comprado o arrancas de cero?",
+      "skipIfContext": [{ "key": "hasEquipment", "next": "CAT9_SETUP_P4" }],
       "transitions": [
         {
           "match": {
@@ -1032,6 +1059,7 @@
     },
     "CAT9_SETUP_P4": {
       "reply": "Presupuesto aproximado para todo?",
+      "skipIfContext": [{ "key": "budget", "next": "CAT9_SETUP_RECOMMEND" }],
       "transitions": [
         {
           "match": {
@@ -1064,6 +1092,9 @@
     },
     "CAT11_ASESORAMIENTO_P1": {
       "reply": "Dale, en que etapa estan tus plantas? Vege o flora?",
+      "skipIfContext": [
+        { "key": "cultivationPhase", "next": "CAT11_ASESORAMIENTO_P2" }
+      ],
       "transitions": [
         {
           "match": {
