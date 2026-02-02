@@ -78,6 +78,11 @@ const routerSchema = z.discriminatedUnion("type", [
   aiRouterSchema,
 ]);
 
+const skipIfContextEntrySchema = z.object({
+  key: z.string(),
+  next: z.string(),
+});
+
 const fsmStateSchema = z.object({
   reply: z.string().optional(),
   agent: z.string().optional(),
@@ -86,6 +91,7 @@ const fsmStateSchema = z.object({
   router: routerSchema.optional(),
   transitions: z.array(transitionSchema).optional(),
   end: z.boolean().optional(),
+  skipIfContext: z.array(skipIfContextEntrySchema).optional(),
 });
 
 const fsmFlowSchema = z.object({
@@ -113,6 +119,7 @@ export type AIRoute = z.infer<typeof aiRouteSchema>;
 export type KeywordRouterConfig = z.infer<typeof keywordRouterSchema>;
 export type AIRouterConfig = z.infer<typeof aiRouterSchema>;
 export type FSMRouterConfig = z.infer<typeof routerSchema>;
+export type SkipIfContextEntry = z.infer<typeof skipIfContextEntrySchema>;
 export type FSMStateConfig = z.infer<typeof fsmStateSchema>;
 export type FSMFlowConfig = z.infer<typeof fsmFlowSchema>;
 export type FlowConfig = z.infer<typeof flowConfigSchema>;

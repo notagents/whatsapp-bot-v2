@@ -3,7 +3,11 @@ import type { Turn } from "@/lib/models";
 import type { Context } from "@/lib/context";
 import type { AgentContext } from "@/lib/agents/types";
 import type { AgentRun } from "@/lib/models";
-import type { ResolvedFlow, SimpleFlowConfig } from "./types";
+import type {
+  ResolvedFlow,
+  SimpleFlowConfig,
+  FSMStateConfig,
+} from "./types";
 import { resolveFlow } from "./resolver";
 import { loadKB } from "@/lib/kb/loader";
 import { retrieveChunks } from "@/lib/kb/retriever";
@@ -132,6 +136,21 @@ async function executeSimpleFlow(
 
 const FSM_MAX_DEPTH = 10;
 
+function resolveSkipIfContext(
+  stateConfig: FSMStateConfig,
+  context: Context
+): string | null {
+  const entries = stateConfig.skipIfContext;
+  if (!entries?.length) return null;
+  const raw = context.memory.structuredContext as Record<string, unknown> | undefined;
+  if (!raw) return null;
+  for (const { key, next } of entries) {
+    const v = raw[key];
+    if (v !== undefined && v !== null && v !== "") return next;
+  }
+  return null;
+}
+
 async function executeFSMFlow(
   params: ExecuteFlowParams,
   resolved: ResolvedFlow,
@@ -185,6 +204,14 @@ async function executeFSMFlow(
       fsmState: effectiveNext,
     });
     if (effectiveNext !== currentStateName) {
+      return executeFSMFlow(params, resolved, depth + 1, entryState);
+    }
+    const skipNext = resolveSkipIfContext(stateConfig, params.context);
+    if (skipNext) {
+      await setConversationState(params.turn.whatsappId, {
+        ...(stateDoc?.state as Record<string, unknown>),
+        fsmState: skipNext,
+      });
       return executeFSMFlow(params, resolved, depth + 1, entryState);
     }
     const meta: FlowMeta = {
@@ -248,6 +275,17 @@ async function executeFSMFlow(
     });
     const resolvedNextConfig = states[nextStateName];
     if (resolvedNextConfig?.reply) {
+      const skipNext = resolveSkipIfContext(
+        resolvedNextConfig,
+        params.context
+      );
+      if (skipNext) {
+        await setConversationState(params.turn.whatsappId, {
+          ...(stateDoc?.state as Record<string, unknown>),
+          fsmState: skipNext,
+        });
+        return executeFSMFlow(params, resolved, depth + 1, entryState);
+      }
       const meta: FlowMeta = { mode: "fsm", flowPath, state: nextStateName };
       return { assistantText: resolvedNextConfig.reply, meta };
     }

@@ -33,4 +33,5 @@ export const KB_SYNC_RUNS_COLLECTION = "kb_sync_runs";
 export const FLOW_DOCUMENTS_COLLECTION = "flow_documents";
 export const AGENT_PROMPT_DOCUMENTS_COLLECTION = "agent_prompt_documents";
 export const SESSION_RUNTIME_CONFIG_COLLECTION = "session_runtime_config";
+export const SESSION_CONTEXT_CONFIG_COLLECTION = "session_context_config";
 export const SESSIONS_COLLECTION = "sessions";

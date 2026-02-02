@@ -20,13 +20,10 @@ function buildSystemPrompt(
   context: AgentRunParams["context"],
   template: string
 ): string {
-  const factsStr =
-    context.memory.facts.length > 0
-      ? context.memory.facts.map((f) => `${f.key}: ${f.value}`).join("; ")
-      : "ninguno";
+  const factsStr = "ninguno (deprecado)";
   const recapStr = context.memory.recap?.text ?? "";
   const structuredContextStr = formatStructuredContextForPrompt(
-    context.memory.structuredContext
+    context.memory.structuredContext as Record<string, unknown> | undefined
   );
   const kbSection =
     context.kbChunks && context.kbChunks.length > 0

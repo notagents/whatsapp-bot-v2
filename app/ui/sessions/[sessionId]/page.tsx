@@ -11,6 +11,7 @@ import {
   CardTitle,
   CardDescription,
 } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { FlowEditor } from "@/components/flow-editor";
 import { AgentPromptEditor } from "@/components/agent-prompt-editor";
 import { DiffViewer } from "@/components/diff-viewer";
@@ -29,6 +30,28 @@ type RuntimeConfigData = {
   configMode: "auto" | "force_draft" | "force_published";
 };
 
+type ContextFieldData = {
+  key: string;
+  type: string;
+  description: string;
+  enumValues?: string[];
+};
+
+type ContextSchemaData = {
+  sessionId: string;
+  domainDescription: string;
+  fields: ContextFieldData[];
+  derivedFrom: string;
+  version: number;
+  updatedAt: number;
+};
+
+type ContextSchemaState = {
+  schema: ContextSchemaData | null;
+  source: "override" | "derived" | null;
+  enabled: boolean;
+};
+
 const AGENT_IDS = [
   "default_assistant",
   "cami_default",
@@ -41,6 +64,9 @@ export default function SessionConfigPage() {
     typeof params.sessionId === "string" ? params.sessionId : "";
   const [flowDraft, setFlowDraft] = useState<FlowData | null>(null);
   const [runtimeConfig, setRuntimeConfig] = useState<RuntimeConfigData | null>(
+    null
+  );
+  const [contextSchema, setContextSchema] = useState<ContextSchemaState | null>(
     null
   );
   const [showDiff, setShowDiff] = useState(false);
@@ -66,9 +92,29 @@ export default function SessionConfigPage() {
     if (json.ok && json.data) setRuntimeConfig(json.data);
   }, [sessionId]);
 
+  const fetchContextSchema = useCallback(async () => {
+    if (!sessionId) return;
+    const res = await fetch(
+      `/api/ui/sessions/${encodeURIComponent(sessionId)}/context-schema`,
+      { credentials: "include" }
+    );
+    const json = await res.json();
+    if (json.ok) {
+      setContextSchema({
+        schema: json.schema ?? null,
+        source: json.source ?? null,
+        enabled: json.enabled ?? true,
+      });
+    }
+  }, [sessionId]);
+
   const refresh = useCallback(async () => {
-    await Promise.all([fetchFlowDraft(), fetchRuntimeConfig()]);
-  }, [fetchFlowDraft, fetchRuntimeConfig]);
+    await Promise.all([
+      fetchFlowDraft(),
+      fetchRuntimeConfig(),
+      fetchContextSchema(),
+    ]);
+  }, [fetchFlowDraft, fetchRuntimeConfig, fetchContextSchema]);
 
   useEffect(() => {
     if (!sessionId) {
@@ -101,6 +147,32 @@ export default function SessionConfigPage() {
     },
     [sessionId, fetchRuntimeConfig]
   );
+
+  const revertContextSchemaToAuto = useCallback(async () => {
+    if (!sessionId) return;
+    await fetch(
+      `/api/ui/sessions/${encodeURIComponent(sessionId)}/context-schema`,
+      { method: "DELETE", credentials: "include" }
+    );
+    await fetchContextSchema();
+  }, [sessionId, fetchContextSchema]);
+
+  const saveContextSchemaAsOverride = useCallback(async () => {
+    if (!sessionId || !contextSchema?.schema) return;
+    await fetch(
+      `/api/ui/sessions/${encodeURIComponent(sessionId)}/context-schema`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          schema: contextSchema.schema,
+          enabled: true,
+        }),
+        credentials: "include",
+      }
+    );
+    await fetchContextSchema();
+  }, [sessionId, contextSchema?.schema, fetchContextSchema]);
 
   if (!sessionId) {
     return (
@@ -172,6 +244,73 @@ export default function SessionConfigPage() {
             )}
           </Card>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Context Schema</CardTitle>
+            <CardDescription>
+              Define what information is extracted from conversations.
+              Auto-derived from FSM or override manually.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {contextSchema?.schema ? (
+              <>
+                <div>
+                  <Label className="text-muted-foreground">Source</Label>
+                  <p className="text-sm mt-1">
+                    {contextSchema.source === "override"
+                      ? "Manual override"
+                      : "Auto (from FSM)"}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">
+                    Domain description
+                  </Label>
+                  <p className="text-sm mt-1 whitespace-pre-wrap">
+                    {contextSchema.schema.domainDescription}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Fields</Label>
+                  <ul className="text-sm mt-1 list-disc list-inside space-y-1">
+                    {contextSchema.schema.fields.map((f) => (
+                      <li key={f.key}>
+                        <span className="font-mono">{f.key}</span> ({f.type}
+                        ): {f.description}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                <div className="flex gap-2">
+                  {contextSchema.source === "override" ? (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={revertContextSchemaToAuto}
+                    >
+                      Revert to auto (from FSM)
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={saveContextSchemaAsOverride}
+                    >
+                      Save as override
+                    </Button>
+                  )}
+                </div>
+              </>
+            ) : (
+              <p className="text-muted-foreground text-sm">
+                No context schema. Use an FSM flow to auto-derive, or save as
+                override.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

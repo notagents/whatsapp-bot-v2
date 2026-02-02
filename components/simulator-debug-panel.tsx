@@ -91,19 +91,9 @@ type ResponsesEnabledResponse = {
   disabledUntilUTC: string | null;
 };
 
-type ContextSnapshotStructured = {
-  environment?: string;
-  seedType?: string;
-  budget?: number;
-  space?: string;
-  plantCount?: number;
-  hasEquipment?: boolean;
-  extractedAt: number;
-  lastUpdatedTurn?: string;
-};
 type ContextSnapshotResponse = {
   memory: {
-    structuredContext?: ContextSnapshotStructured | null;
+    structuredContext?: Record<string, unknown> | null;
     facts: Array<{
       key: string;
       value: string;
@@ -502,42 +492,32 @@ function ContextTabContent({
   }
   const { memory, state, recentMessages } = snapshot;
   const sc = memory.structuredContext;
+  const scEntries =
+    sc && typeof sc === "object"
+      ? Object.entries(sc).filter(([k]) => !k.startsWith("_") && sc[k] != null)
+      : [];
+  const extractedAt =
+    sc && typeof sc === "object"
+      ? ((sc._extractedAt ?? sc.extractedAt) as number | undefined)
+      : undefined;
   return (
     <div className="space-y-3">
-      {sc && (
+      {sc && (scEntries.length > 0 || extractedAt != null) && (
         <Card>
           <CardHeader className="py-2">
             <CardTitle className="text-sm">Contexto estructurado</CardTitle>
           </CardHeader>
           <CardContent className="py-2 text-sm space-y-1">
-            {sc.environment != null && (
-              <p className="text-muted-foreground">
-                environment: {sc.environment}
+            {scEntries.map(([key, value]) => (
+              <p key={key} className="text-muted-foreground">
+                {key}: {String(value)}
+              </p>
+            ))}
+            {extractedAt != null && (
+              <p className="text-muted-foreground text-xs">
+                extractedAt: {new Date(extractedAt).toLocaleString()}
               </p>
             )}
-            {sc.seedType != null && (
-              <p className="text-muted-foreground">seedType: {sc.seedType}</p>
-            )}
-            {sc.budget != null && (
-              <p className="text-muted-foreground">budget: {sc.budget}</p>
-            )}
-            {sc.space != null && (
-              <p className="text-muted-foreground">space: {sc.space}</p>
-            )}
-            {sc.plantCount != null && (
-              <p className="text-muted-foreground">
-                plantCount: {sc.plantCount}
-              </p>
-            )}
-            {sc.hasEquipment != null && (
-              <p className="text-muted-foreground">
-                hasEquipment: {String(sc.hasEquipment)}
-              </p>
-            )}
-            <p className="text-muted-foreground text-xs">
-              extractedAt:{" "}
-              {sc.extractedAt ? new Date(sc.extractedAt).toLocaleString() : "—"}
-            </p>
           </CardContent>
         </Card>
       )}

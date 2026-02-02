@@ -1,8 +1,20 @@
 import type { ObjectId } from "mongodb";
 import OpenAI from "openai";
 import { getDb } from "./db";
-import { MESSAGES_COLLECTION, MEMORY_COLLECTION } from "./db";
-import type { Message, Memory, StructuredContext } from "./models";
+import {
+  MESSAGES_COLLECTION,
+  MEMORY_COLLECTION,
+  SESSION_CONTEXT_CONFIG_COLLECTION,
+} from "./db";
+import type { Message, Memory, SessionContextConfig } from "./models";
+import type { ContextSchema } from "./context-schema";
+import {
+  buildExtractionPrompt,
+  deriveSchemaFromFSM,
+  parseBySchema,
+} from "./context-schema";
+import { resolveFlow } from "./flows/resolver";
+import type { FSMFlowConfig } from "./flows/types";
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
@@ -12,22 +24,8 @@ const ENABLE_STRUCTURED_CONTEXT =
 const EXTRACTOR_MODEL = "gpt-4o-mini";
 const RECENT_MESSAGES_FOR_EXTRACTION = 15;
 
-export type { StructuredContext };
-
-const EXTRACT_STRUCTURED_PROMPT = `Analiza esta conversacion de WhatsApp entre usuario y bot de una tienda de cultivo (semillas, sustratos, iluminacion, etc).
-Extrae SOLO informacion que el USUARIO haya dicho explícitamente o que se infiera claramente de sus mensajes.
-Responde SOLO con un JSON valido, sin markdown, con estas claves (usa null si no aplica):
-- environment: "interior" | "exterior" si el usuario dijo donde va a cultivar
-- seedType: "automatica" | "fotoperiodica" si el usuario eligio tipo de semilla
-- budget: numero en pesos (ej: 35000) si el usuario menciono presupuesto
-- space: string si dijo donde (placard, habitacion, balcon, etc)
-- plantCount: numero si dijo cuantas plantas
-- hasEquipment: true/false si dijo que tiene algo comprado o arranca de cero
-
-Ejemplo: {"environment":"interior","seedType":"automatica","budget":35000,"space":"placard","plantCount":3,"hasEquipment":false}
-
-Conversacion:
-`;
+const EXTRACTED_AT_KEY = "_extractedAt";
+const SCHEMA_VERSION_KEY = "_schemaVersion";
 
 function conversationFromMessages(messages: Message[]): string {
   return messages
@@ -39,57 +37,12 @@ function conversationFromMessages(messages: Message[]): string {
     .join("\n");
 }
 
-function parseExtraction(raw: string): Partial<StructuredContext> {
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    const out: Partial<StructuredContext> = {};
-    if (
-      parsed.environment === "interior" ||
-      parsed.environment === "exterior"
-    ) {
-      out.environment = parsed.environment;
-    }
-    if (
-      parsed.seedType === "automatica" ||
-      parsed.seedType === "fotoperiodica"
-    ) {
-      out.seedType = parsed.seedType;
-    }
-    if (typeof parsed.budget === "number" && parsed.budget > 0) {
-      out.budget = parsed.budget;
-    }
-    if (typeof parsed.space === "string" && parsed.space.trim()) {
-      out.space = parsed.space.trim();
-    }
-    if (typeof parsed.plantCount === "number" && parsed.plantCount > 0) {
-      out.plantCount = parsed.plantCount;
-    }
-    if (typeof parsed.hasEquipment === "boolean") {
-      out.hasEquipment = parsed.hasEquipment;
-    }
-    return out;
-  } catch {
-    return {};
-  }
-}
-
-function mergeStructuredContext(
-  existing: StructuredContext | null | undefined,
-  extracted: Partial<StructuredContext>,
-  extractedAt: number,
-  lastUpdatedTurn?: ObjectId
-): StructuredContext {
-  const base = existing ?? { extractedAt: 0 };
-  return {
-    environment: extracted.environment ?? base.environment,
-    seedType: extracted.seedType ?? base.seedType,
-    budget: extracted.budget ?? base.budget,
-    space: extracted.space ?? base.space,
-    plantCount: extracted.plantCount ?? base.plantCount,
-    hasEquipment: extracted.hasEquipment ?? base.hasEquipment,
-    extractedAt,
-    lastUpdatedTurn: lastUpdatedTurn ?? base.lastUpdatedTurn,
-  };
+function getExtractedAt(
+  existing: Record<string, unknown> | null | undefined
+): number {
+  if (!existing) return 0;
+  const v = existing[EXTRACTED_AT_KEY] ?? existing["extractedAt"];
+  return typeof v === "number" ? v : 0;
 }
 
 export function shouldResetContext(
@@ -101,42 +54,98 @@ export function shouldResetContext(
   return elapsed > ttlMs;
 }
 
+export async function loadContextSchema(
+  sessionId: string
+): Promise<ContextSchema | null> {
+  const db = await getDb();
+  const config = await db
+    .collection<SessionContextConfig>(SESSION_CONTEXT_CONFIG_COLLECTION)
+    .findOne({ sessionId });
+
+  if (config?.enabled && config.schema) {
+    return config.schema;
+  }
+
+  const resolved = await resolveFlow(sessionId, "whatsapp");
+  if (resolved.config.mode === "fsm") {
+    return deriveSchemaFromFSM(sessionId, resolved.config as FSMFlowConfig);
+  }
+
+  return null;
+}
+
+function mergeContext(
+  existing: Record<string, unknown> | null | undefined,
+  extracted: Record<string, unknown>,
+  extractedAt: number,
+  schemaVersion: number,
+  turnId?: ObjectId
+): Record<string, unknown> {
+  const base = existing ?? {};
+  const out: Record<string, unknown> = { ...base };
+  for (const [k, v] of Object.entries(extracted)) {
+    if (v !== undefined && v !== null) {
+      out[k] = v;
+    } else if (base[k] !== undefined && base[k] !== null) {
+      out[k] = base[k];
+    }
+  }
+  out[EXTRACTED_AT_KEY] = extractedAt;
+  out[SCHEMA_VERSION_KEY] = schemaVersion;
+  if (turnId) out["_lastUpdatedTurn"] = turnId;
+  return out;
+}
+
 export async function extractStructuredContext(
   whatsappId: string,
+  sessionId: string,
   recentMessages: Message[],
-  existing: StructuredContext | null | undefined,
+  existing: Record<string, unknown> | null | undefined,
   turnId?: ObjectId
-): Promise<StructuredContext | null> {
+): Promise<Record<string, unknown> | null> {
   if (!ENABLE_STRUCTURED_CONTEXT || recentMessages.length === 0) {
-    if (existing && !shouldResetContext(existing.extractedAt)) {
+    const at = getExtractedAt(existing);
+    if (existing && at > 0 && !shouldResetContext(at)) {
       return existing;
     }
     return null;
   }
-  if (existing && shouldResetContext(existing.extractedAt)) {
-    const now = Date.now();
-    return mergeStructuredContext(null, {}, now, turnId);
+
+  const schema = await loadContextSchema(sessionId);
+  if (!schema) {
+    return existing ?? null;
   }
+
+  const extractedAt = getExtractedAt(existing);
+  if (extractedAt > 0 && shouldResetContext(extractedAt)) {
+    const now = Date.now();
+    return mergeContext(null, {}, now, schema.version, turnId);
+  }
+
   const conversation = conversationFromMessages(recentMessages);
   if (!conversation.trim()) return existing ?? null;
+
   try {
+    const prompt = buildExtractionPrompt(schema, conversation);
     const completion = await openai.chat.completions.create({
       model: EXTRACTOR_MODEL,
-      messages: [
-        {
-          role: "user",
-          content: EXTRACT_STRUCTURED_PROMPT + conversation,
-        },
-      ],
+      messages: [{ role: "user", content: prompt }],
       response_format: { type: "json_object" },
       temperature: 0.2,
-      max_tokens: 256,
+      max_tokens: 512,
     });
     const content = completion.choices[0]?.message?.content;
     if (!content) return existing ?? null;
-    const extracted = parseExtraction(content);
+
+    const extracted = parseBySchema(content, schema);
     const now = Date.now();
-    const merged = mergeStructuredContext(existing, extracted, now, turnId);
+    const merged = mergeContext(
+      existing,
+      extracted,
+      now,
+      schema.version,
+      turnId
+    );
     return merged;
   } catch {
     return existing ?? null;
@@ -158,7 +167,7 @@ export async function loadRecentMessagesForExtraction(
 
 export async function persistStructuredContext(
   whatsappId: string,
-  structured: StructuredContext | null
+  structured: Record<string, unknown> | null
 ): Promise<void> {
   const db = await getDb();
   const col = db.collection<Memory>(MEMORY_COLLECTION);
@@ -186,20 +195,19 @@ export async function persistStructuredContext(
 }
 
 export function formatStructuredContextForPrompt(
-  structured: StructuredContext | null | undefined
+  structured: Record<string, unknown> | null | undefined
 ): string {
-  if (!structured) return "ninguno";
+  if (!structured || typeof structured !== "object") return "ninguno";
   const parts: string[] = [];
-  if (structured.environment) parts.push(`ambiente: ${structured.environment}`);
-  if (structured.seedType)
-    parts.push(`tipo de semilla: ${structured.seedType}`);
-  if (structured.budget != null)
-    parts.push(`presupuesto: ${structured.budget} pesos`);
-  if (structured.space) parts.push(`espacio: ${structured.space}`);
-  if (structured.plantCount != null)
-    parts.push(`cantidad de plantas: ${structured.plantCount}`);
-  if (structured.hasEquipment != null)
-    parts.push(`tiene equipo: ${structured.hasEquipment ? "si" : "no"}`);
-  if (parts.length === 0) return "ninguno";
-  return parts.join("; ");
+  for (const [key, value] of Object.entries(structured)) {
+    if (key.startsWith("_")) continue;
+    if (value == null) continue;
+    const label = key
+      .replace(/([A-Z])/g, " $1")
+      .replace(/_/g, " ")
+      .toLowerCase()
+      .trim();
+    parts.push(`${label}: ${value}`);
+  }
+  return parts.length > 0 ? parts.join("; ") : "ninguno";
 }

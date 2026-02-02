@@ -27,6 +27,7 @@ import type {
   KbSyncRun,
 } from "./kb-v2/types";
 import type { FlowConfig } from "./flows/types";
+import type { ContextSchema } from "./context-schema";
 
 export type Message = {
   _id?: ObjectId;
@@ -159,13 +160,23 @@ export type StructuredContext = {
   lastUpdatedTurn?: ObjectId;
 };
 
+export type SessionContextConfig = {
+  _id?: ObjectId;
+  sessionId: string;
+  schema: ContextSchema;
+  enabled: boolean;
+  updatedAt: number;
+  updatedBy: string;
+};
+
 export type Memory = {
   _id?: ObjectId;
   whatsappId: string;
   userID: string;
   facts: MemoryFact[];
   recap: MemoryRecap;
-  structuredContext?: StructuredContext;
+  structuredContext?: Record<string, unknown>;
+  contextSchemaVersion?: number;
 };
 
 export type JobType =

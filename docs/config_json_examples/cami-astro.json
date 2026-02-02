@@ -306,6 +306,9 @@
     },
     "CAT1_SEMILLAS_P1": {
       "reply": "Dale, para ayudarte bien primero necesito esto. Vas a cultivar en interior o exterior?",
+      "skipIfContext": [
+        { "key": "environment", "next": "CAT1_SEMILLAS_P2" }
+      ],
       "transitions": [
         {
           "match": {
@@ -360,6 +363,9 @@
     },
     "CAT1_SEMILLAS_P1_REPEAT": {
       "reply": "Perfecto, para ubicarte bien necesito una cosa. Es interior o exterior?",
+      "skipIfContext": [
+        { "key": "environment", "next": "CAT1_SEMILLAS_P2" }
+      ],
       "transitions": [
         {
           "match": {
@@ -371,6 +377,9 @@
     },
     "CAT1_SEMILLAS_P2": {
       "reply": "Genial. Las automaticas florecen solas por tiempo, las fotoperiodicas dependen de las horas de luz. Cual preferis, automatica o fotoperiodica?",
+      "skipIfContext": [
+        { "key": "seedType", "next": "CAT1_SEMILLAS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -421,6 +430,9 @@
     },
     "CAT1_SEMILLAS_P2_REPEAT": {
       "reply": "Dale, asi te recomiendo bien. Preferis automatica o fotoperiodica?",
+      "skipIfContext": [
+        { "key": "seedType", "next": "CAT1_SEMILLAS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {

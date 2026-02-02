@@ -21,20 +21,9 @@ export type ContextSnapshotMessage = {
   messageTime: number;
 };
 
-export type ContextSnapshotStructuredContext = {
-  environment?: "interior" | "exterior";
-  seedType?: "automatica" | "fotoperiodica";
-  budget?: number;
-  space?: string;
-  plantCount?: number;
-  hasEquipment?: boolean;
-  extractedAt: number;
-  lastUpdatedTurn?: string;
-};
-
 export type ContextSnapshot = {
   memory: {
-    structuredContext?: ContextSnapshotStructuredContext | null;
+    structuredContext?: Record<string, unknown> | null;
     facts: Memory["facts"];
     recap: Memory["recap"];
   };
@@ -57,6 +46,7 @@ const defaultMemory: Memory = {
 
 export async function buildContext(
   whatsappId: string,
+  sessionId: string,
   turnId?: ObjectId
 ): Promise<Context> {
   const db = await getDb();
@@ -76,6 +66,7 @@ export async function buildContext(
   };
   const structured = await extractStructuredContext(
     whatsappId,
+    sessionId,
     recentMessages,
     memory.structuredContext,
     turnId
@@ -118,10 +109,13 @@ export async function getContextSnapshot(
     whatsappId,
     userID: getActualJid(whatsappId),
   };
-  const structuredContext = memory.structuredContext
+  const raw = memory.structuredContext as Record<string, unknown> | undefined;
+  const structuredContext = raw
     ? {
-        ...memory.structuredContext,
-        lastUpdatedTurn: memory.structuredContext.lastUpdatedTurn?.toString(),
+        ...raw,
+        ...(raw._lastUpdatedTurn != null && {
+          lastUpdatedTurn: String(raw._lastUpdatedTurn),
+        }),
       }
     : null;
   const messages: ContextSnapshotMessage[] = recentMessages

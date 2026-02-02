@@ -329,10 +329,15 @@ async function processRunAgentImpl(job: Job): Promise<void> {
     }
   }
   const { buildContext } = await import("@/lib/context");
-  const { resolveFlow } = await import("@/lib/flows/registry");
+  const { resolveFlow } = await import("@/lib/flows/resolver");
   const { executeFlow } = await import("@/lib/flows/runtime");
-  const context = await buildContext(turn.whatsappId, turn._id);
-  const resolvedFlow = await resolveFlow(turn.sessionId);
+  const context = await buildContext(turn.whatsappId, turn.sessionId, turn._id);
+  const channel = turn.channel ?? "whatsapp";
+  const resolvedFlow = await resolveFlow(
+    turn.sessionId,
+    channel,
+    turn.configOverride
+  );
   const flowResult = await executeFlow({
     sessionId: turn.sessionId,
     turn,
@@ -491,12 +496,7 @@ async function processKbReindexMarkdown(job: Job): Promise<void> {
 }
 
 async function processMemoryUpdateImpl(job: Job): Promise<void> {
-  const {
-    extractFactsFromTurn,
-    upsertMemoryFacts,
-    generateRecap,
-    updateMemoryRecap,
-  } = await import("@/lib/memory");
+  const { generateRecap, updateMemoryRecap } = await import("@/lib/memory");
   const { getRecentTurns } = await import("@/lib/turns");
   const payload = job.payload as { turnId: string };
   const db = await getDb();
@@ -504,8 +504,6 @@ async function processMemoryUpdateImpl(job: Job): Promise<void> {
     _id: new ObjectId(payload.turnId),
   });
   if (!turn) return;
-  const facts = await extractFactsFromTurn(turn);
-  await upsertMemoryFacts(turn.whatsappId, turn.userID, facts);
   const recentTurns = await getRecentTurns(turn.whatsappId, 10);
   const recap = await generateRecap(recentTurns);
   await updateMemoryRecap(turn.whatsappId, recap);
