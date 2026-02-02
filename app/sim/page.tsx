@@ -19,13 +19,21 @@ export default async function SimulatorPage() {
             <CardTitle>Elegir sesión</CardTitle>
           </CardHeader>
           <CardContent className="flex flex-wrap gap-2">
-            {sessions.map((sessionId) => (
-              <Button key={sessionId} variant="outline" asChild>
-                <Link href={`/sim/${encodeURIComponent(sessionId)}`}>
-                  {sessionId}
-                </Link>
-              </Button>
-            ))}
+            {sessions.length === 0 ? (
+              <p className="text-muted-foreground text-sm">
+                No hay sesiones activas en Baileys. Comprueba que
+                BAILEYS_API_URL esté configurado y que el servicio Baileys tenga
+                al menos una sesión conectada.
+              </p>
+            ) : (
+              sessions.map((sessionId) => (
+                <Button key={sessionId} variant="outline" asChild>
+                  <Link href={`/sim/${encodeURIComponent(sessionId)}`}>
+                    {sessionId}
+                  </Link>
+                </Button>
+              ))
+            )}
           </CardContent>
         </Card>
       </main>
