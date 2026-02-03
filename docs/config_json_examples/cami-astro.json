@@ -1,5 +1,15 @@
 {
   "mode": "fsm",
+  "humanSend": {
+    "enabled": true,
+    "maxParts": 5,
+    "minPartChars": 40,
+    "maxPartChars": 350,
+    "minDelayMs": 600,
+    "maxDelayMs": 2200,
+    "threshold": 400,
+    "useLLM": true
+  },
   "initialState": "START",
   "states": {
     "START": {
@@ -98,6 +108,17 @@
             ]
           },
           {
+            "next": "CAT2_SUSTRATOS_FOLLOWUP",
+            "name": "Continuacion recomendacion sustratos",
+            "description": "Usuario ya respondio sobre preferencia de sustrato y esta continuando con cantidad, presupuesto o confirmando eleccion. Continuar con recomendacion de sustratos.",
+            "examples": [
+              "cuanto sale",
+              "20 litros",
+              "quiero ese",
+              "ya lo hablamos"
+            ]
+          },
+          {
             "next": "CAT3_FERTILIZANTES_P1",
             "name": "Fertilizantes y Nutrientes",
             "description": "Consultas sobre fertilizantes, nutrientes, abonos, productos flora/vege, tripacks",
@@ -108,6 +129,17 @@
               "flora",
               "vege",
               "tripack"
+            ]
+          },
+          {
+            "next": "CAT3_FERTILIZANTES_FOLLOWUP",
+            "name": "Continuacion recomendacion fertilizantes",
+            "description": "Usuario ya respondio sobre fase de cultivo y estado de plantas, esta continuando con presupuesto, marca preferida o confirmando eleccion de fertilizantes.",
+            "examples": [
+              "cuanto sale",
+              "top crop",
+              "quiero ese",
+              "ya lo hablamos"
             ]
           },
           {
@@ -124,10 +156,22 @@
             ]
           },
           {
+            "next": "CAT4_ILUMINACION_FOLLOWUP",
+            "name": "Continuacion recomendacion iluminacion",
+            "description": "Usuario ya respondio sobre cantidad de plantas o tamano de espacio, esta continuando con presupuesto, watts necesarios o confirmando eleccion de iluminacion.",
+            "examples": ["cuanto sale", "200w", "quiero ese", "ya lo hablamos"]
+          },
+          {
             "next": "CAT5_CARPAS_P1",
             "name": "Carpas Indoor",
             "description": "Consultas sobre carpas de cultivo, grow tents, armarios indoor",
             "keywords": ["carpa", "indoor", "armario", "grow tent"]
+          },
+          {
+            "next": "CAT5_CARPAS_FOLLOWUP",
+            "name": "Continuacion recomendacion carpas",
+            "description": "Usuario ya respondio sobre cantidad de plantas y si quiere solo carpa o setup completo, esta continuando con presupuesto, medidas o confirmando eleccion.",
+            "examples": ["cuanto sale", "80x80", "quiero esa", "ya lo hablamos"]
           },
           {
             "next": "CAT6_VENTILACION_P1",
@@ -138,6 +182,17 @@
               "ventilacion",
               "filtro olor",
               "carbon activado"
+            ]
+          },
+          {
+            "next": "CAT6_VENTILACION_FOLLOWUP",
+            "name": "Continuacion recomendacion ventilacion",
+            "description": "Usuario ya respondio sobre tamano de espacio y necesidad de filtro, esta continuando con presupuesto, caudal necesario o confirmando eleccion.",
+            "examples": [
+              "cuanto sale",
+              "con filtro",
+              "quiero ese",
+              "ya lo hablamos"
             ]
           },
           {
@@ -154,10 +209,32 @@
             ]
           },
           {
+            "next": "CAT7_PLAGAS_FOLLOWUP",
+            "name": "Continuacion recomendacion plagas",
+            "description": "Usuario ya respondio sobre tipo de problema y sintomas, esta continuando con presupuesto, urgencia o confirmando producto para control de plagas.",
+            "examples": [
+              "cuanto sale",
+              "urgente",
+              "quiero ese",
+              "ya lo hablamos"
+            ]
+          },
+          {
             "next": "CAT8_ACCESORIOS_P1",
             "name": "Accesorios de Cultivo",
             "description": "Consultas sobre macetas, medidores de pH, tijeras, timers, termómetros",
             "keywords": ["maceta", "ph", "tijera", "timer", "termometro"]
+          },
+          {
+            "next": "CAT8_ACCESORIOS_FOLLOWUP",
+            "name": "Continuacion recomendacion accesorios",
+            "description": "Usuario ya respondio sobre tipo de accesorio y si esta arrancando o complementando, esta continuando con especificaciones, presupuesto o confirmando eleccion.",
+            "examples": [
+              "cuanto sale",
+              "digital",
+              "quiero ese",
+              "ya lo hablamos"
+            ]
           },
           {
             "next": "CAT9_SETUP_P1",
@@ -177,6 +254,17 @@
             ]
           },
           {
+            "next": "CAT9_SETUP_FOLLOWUP",
+            "name": "Continuacion recomendacion setup",
+            "description": "Usuario ya respondio sobre espacio, cantidad de plantas y presupuesto, esta continuando con especificaciones del kit, ajustes o confirmando eleccion de setup completo.",
+            "examples": [
+              "cuanto sale todo",
+              "armado",
+              "quiero ese kit",
+              "ya lo hablamos"
+            ]
+          },
+          {
             "next": "CAT11_ASESORAMIENTO_P1",
             "name": "Asesoramiento Técnico",
             "description": "Problemas con plantas existentes, hojas amarillas, diagnóstico de cultivo",
@@ -187,10 +275,33 @@
             "keywords": ["hojas amarillas", "mi planta", "problema"]
           },
           {
+            "next": "CAT11_ASESORAMIENTO_FOLLOWUP",
+            "name": "Continuacion asesoramiento tecnico",
+            "description": "Usuario ya describio problema con plantas y envio fotos, esta continuando con mas detalles, productos recomendados o confirmando solucion propuesta.",
+            "examples": [
+              "como aplico",
+              "cuanto sale",
+              "ya probe eso",
+              "ya lo hablamos"
+            ]
+          },
+          {
             "next": "CAT12_VAPOS_P1",
             "name": "Vaporizadores",
             "description": "Consultas sobre vaporizadores, vapes",
             "keywords": ["vaporizador", "vapo", "vape"]
+          },
+          {
+            "next": "CAT12_VAPOS_FOLLOWUP",
+            "name": "Continuacion recomendacion vaporizadores",
+            "description": "Usuario ya respondio si es su primero o no, esta continuando con presupuesto, tipo preferido (descartable/recargable) o confirmando eleccion de vaporizador.",
+            "examples": [
+              "cuanto sale",
+              "el mas barato",
+              "descartable",
+              "quiero ese",
+              "ya lo hablamos"
+            ]
           },
           {
             "next": "INFO_KB",
@@ -552,7 +663,7 @@
       ]
     },
     "CAT2_SUSTRATOS_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -568,7 +679,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT2_SUSTRATOS_FOLLOWUP"
         }
       ]
     },
@@ -609,7 +720,7 @@
       ]
     },
     "CAT3_FERTILIZANTES_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -625,7 +736,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT3_FERTILIZANTES_FOLLOWUP"
         }
       ]
     },
@@ -696,7 +807,7 @@
       ]
     },
     "CAT4_ILUMINACION_60x60": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -712,12 +823,12 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT4_ILUMINACION_FOLLOWUP"
         }
       ]
     },
     "CAT4_ILUMINACION_80x80": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -733,12 +844,12 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT4_ILUMINACION_FOLLOWUP"
         }
       ]
     },
     "CAT4_ILUMINACION_100x100": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -754,7 +865,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT4_ILUMINACION_FOLLOWUP"
         }
       ]
     },
@@ -840,7 +951,7 @@
       ]
     },
     "CAT5_CARPAS_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -856,7 +967,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT5_CARPAS_FOLLOWUP"
         }
       ]
     },
@@ -898,7 +1009,7 @@
       ]
     },
     "CAT6_VENTILACION_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -914,12 +1025,13 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT6_VENTILACION_FOLLOWUP"
         }
       ]
     },
     "CAT7_PLAGAS_P1": {
       "reply": "Dale, tenes algun problema ahora o es para prevenir?",
+      "skipIfContext": [{ "key": "problemType", "next": "CAT7_PLAGAS_P2" }],
       "transitions": [
         {
           "match": {
@@ -955,7 +1067,7 @@
       ]
     },
     "CAT7_PLAGAS_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -971,12 +1083,15 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT7_PLAGAS_FOLLOWUP"
         }
       ]
     },
     "CAT8_ACCESORIOS_P1": {
       "reply": "Dale, que accesorio puntual buscas?",
+      "skipIfContext": [
+        { "key": "accessoryType", "next": "CAT8_ACCESORIOS_P2" }
+      ],
       "transitions": [
         {
           "match": {
@@ -1001,7 +1116,7 @@
       ]
     },
     "CAT8_ACCESORIOS_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -1017,7 +1132,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT8_ACCESORIOS_FOLLOWUP"
         }
       ]
     },
@@ -1070,7 +1185,7 @@
       ]
     },
     "CAT9_SETUP_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -1086,7 +1201,7 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT9_SETUP_FOLLOWUP"
         }
       ]
     },
@@ -1138,7 +1253,7 @@
       ]
     },
     "CAT11_ASESORAMIENTO_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,
@@ -1154,12 +1269,15 @@
           "match": {
             "any": true
           },
-          "next": "ROUTER"
+          "next": "CAT11_ASESORAMIENTO_FOLLOWUP"
         }
       ]
     },
     "CAT12_VAPOS_P1": {
       "reply": "Dale, ya tuviste vaporizador antes o seria tu primero?",
+      "skipIfContext": [
+        { "key": "vapeExperience", "next": "CAT12_VAPOS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -1214,6 +1332,9 @@
     },
     "CAT12_VAPOS_P1_REPEAT": {
       "reply": "Perfecto, necesito saber. Es tu primer vaporizador o ya tuviste alguno?",
+      "skipIfContext": [
+        { "key": "vapeExperience", "next": "CAT12_VAPOS_RECOMMEND" }
+      ],
       "transitions": [
         {
           "match": {
@@ -1224,7 +1345,217 @@
       ]
     },
     "CAT12_VAPOS_RECOMMEND": {
-      "agent": "cami_default",
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "CAT12_VAPOS_FOLLOWUP"
+        }
+      ]
+    },
+    "CAT2_SUSTRATOS_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT3_FERTILIZANTES_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT4_ILUMINACION_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT5_CARPAS_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT6_VENTILACION_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT7_PLAGAS_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT8_ACCESORIOS_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT9_SETUP_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT11_ASESORAMIENTO_FOLLOWUP": {
+      "agent": "cami_recommender",
+      "kbV2": {
+        "md": {
+          "enabled": true,
+          "topK": 4
+        },
+        "tables": {
+          "enabled": true,
+          "tableKeys": ["products"]
+        }
+      },
+      "transitions": [
+        {
+          "match": {
+            "any": true
+          },
+          "next": "ROUTER"
+        }
+      ]
+    },
+    "CAT12_VAPOS_FOLLOWUP": {
+      "agent": "cami_recommender",
       "kbV2": {
         "md": {
           "enabled": true,

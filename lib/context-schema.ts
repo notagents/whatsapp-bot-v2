@@ -125,6 +125,97 @@ const FSM_FIELD_MAP: Array<{
       },
     ],
   },
+  {
+    pattern: /^CAT5_CARPAS/,
+    fields: [
+      {
+        key: "plantCount",
+        type: "number",
+        description: "Cantidad de plantas para la carpa",
+      },
+      {
+        key: "setupType",
+        type: "enum",
+        enumValues: ["solo_carpa", "setup_completo"],
+        description: "Si quiere solo la carpa o equiparla completa",
+      },
+    ],
+  },
+  {
+    pattern: /^CAT6_VENTILACION/,
+    fields: [
+      {
+        key: "spaceSize",
+        type: "string",
+        description: "Tamano de la carpa o espacio",
+      },
+      {
+        key: "needsFilter",
+        type: "boolean",
+        description: "Si necesita filtro de olor o solo extraccion",
+      },
+      {
+        key: "hasEquipment",
+        type: "boolean",
+        description: "Si ya tiene sistema de ventilacion o arranca de cero",
+      },
+    ],
+  },
+  {
+    pattern: /^CAT7_PLAGAS/,
+    fields: [
+      {
+        key: "problemType",
+        type: "enum",
+        enumValues: ["preventivo", "activo"],
+        description: "Si tiene problema ahora o es para prevenir",
+      },
+      {
+        key: "environment",
+        type: "enum",
+        enumValues: ["interior", "exterior"],
+        description: "Ambiente de cultivo (interior o exterior)",
+      },
+    ],
+  },
+  {
+    pattern: /^CAT8_ACCESORIOS/,
+    fields: [
+      {
+        key: "accessoryType",
+        type: "string",
+        description:
+          "Tipo de accesorio que busca (maceta, ph, tijera, timer, etc)",
+      },
+      {
+        key: "hasEquipment",
+        type: "boolean",
+        description: "Si es para complementar cultivo o esta arrancando",
+      },
+    ],
+  },
+  {
+    pattern: /^CAT12_VAPOS/,
+    fields: [
+      {
+        key: "vapeExperience",
+        type: "enum",
+        enumValues: ["primero", "ya_tuve"],
+        description: "Si es su primer vaporizador o ya tuvo experiencia previa",
+      },
+      {
+        key: "vapeType",
+        type: "enum",
+        enumValues: ["descartable", "recargable", "portatil", "mesa"],
+        description: "Tipo de vaporizador preferido",
+      },
+      {
+        key: "budget",
+        type: "number",
+        description: "Presupuesto en pesos argentinos",
+      },
+    ],
+  },
 ];
 
 function routeNextMatches(next: string, pattern: RegExp | string): boolean {
