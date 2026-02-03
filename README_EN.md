@@ -495,8 +495,7 @@ Dual system: markdown documents and structured tables, per session. Agents acces
 - **API**:
   - `GET /api/kb/tables` — list tables (query: sessionId)
   - `GET /api/kb/tables/[sessionId]/[tableKey]/rows` — rows (query: query, limit)
-
-Detailed documentation: [docs/KB_SYNC_API.md](docs/KB_SYNC_API.md).
+- **Synonyms**: query expansion and product aliases so user terms (e.g. "vaporizador") match catalog names (e.g. "v4po", "v4porizador"). Config per session via `GET/POST/PUT/DELETE /api/kb/synonyms/[sessionId]` (same auth as sync). **UI**: KB Manager (`/kb/[sessionId]`) has a **Sinonimos** tab (requires login) to add/delete synonym groups. Seed script: `SESSION_ID=... npm run seed-synonyms`. See [docs/kb-synonyms.md](docs/kb-synonyms.md).
 
 ### Agent KB Tools (v2)
 
@@ -533,28 +532,28 @@ Flows and prompts can be edited in **draft** in MongoDB and published to product
 
 ### Flow API
 
-| Method | Route                                                         | Description             |
-| ------ | ------------------------------------------------------------- | ----------------------- |
+| Method | Route                                                        | Description             |
+| ------ | ------------------------------------------------------------ | ----------------------- |
 | GET    | `/api/ui/sessions/[sessionId]/flow?version=draft\|published` | Get flow                |
 | PUT    | `/api/ui/sessions/[sessionId]/flow`                          | Update draft            |
-| POST   | `/api/ui/sessions/[sessionId]/flow/publish`                   | Publish draft           |
-| POST   | `/api/ui/sessions/[sessionId]/flow/validate`                  | Validate without saving |
-| GET    | `/api/ui/sessions/[sessionId]/flow/diff`                      | Diff draft vs published |
+| POST   | `/api/ui/sessions/[sessionId]/flow/publish`                  | Publish draft           |
+| POST   | `/api/ui/sessions/[sessionId]/flow/validate`                 | Validate without saving |
+| GET    | `/api/ui/sessions/[sessionId]/flow/diff`                     | Diff draft vs published |
 
 ### Prompt API
 
-| Method | Route                                                                            | Description      |
-| ------ | -------------------------------------------------------------------------------- | ---------------- |
-| GET    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt?version=draft\|published` | Get prompt       |
-| PUT    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`                           | Update draft     |
-| POST   | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt/publish`                  | Publish draft    |
+| Method | Route                                                                           | Description   |
+| ------ | ------------------------------------------------------------------------------- | ------------- |
+| GET    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt?version=draft\|published` | Get prompt    |
+| PUT    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`                          | Update draft  |
+| POST   | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt/publish`                  | Publish draft |
 
 ### Runtime Config API
 
-| Method | Route                                          | Description                                      |
-| ------ | ---------------------------------------------- | ------------------------------------------------ |
-| GET    | `/api/ui/sessions/[sessionId]/runtime-config` | Get configMode                                   |
-| PUT    | `/api/ui/sessions/[sessionId]/runtime-config` | Update configMode (clears resolver cache)        |
+| Method | Route                                         | Description                               |
+| ------ | --------------------------------------------- | ----------------------------------------- |
+| GET    | `/api/ui/sessions/[sessionId]/runtime-config` | Get configMode                            |
+| PUT    | `/api/ui/sessions/[sessionId]/runtime-config` | Update configMode (clears resolver cache) |
 
 All routes under `/api/ui/` require authentication.
 
@@ -595,13 +594,13 @@ Real-time for active conversation:
 
 ### Simulator API
 
-| Method | Route                                               | Description                                                  |
-| ------ | --------------------------------------------------- | ------------------------------------------------------------ |
-| GET    | `/api/sim/sessions/[sessionId]/conversations`       | List conversations                                           |
-| POST   | `/api/sim/sessions/[sessionId]/conversations`       | Create (body: `testUserId`)                                  |
-| GET    | `/api/sim/conversations/[conversationId]/messages` | History (limit 200)                                          |
-| POST   | `/api/sim/conversations/[conversationId]/messages` | Send message (optional: `configOverride`: draft/published)     |
-| POST   | `/api/sim/conversations/[conversationId]/reset`   | Reset state and memory                                       |
+| Method | Route                                              | Description                                                |
+| ------ | -------------------------------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/sim/sessions/[sessionId]/conversations`      | List conversations                                         |
+| POST   | `/api/sim/sessions/[sessionId]/conversations`      | Create (body: `testUserId`)                                |
+| GET    | `/api/sim/conversations/[conversationId]/messages` | History (limit 200)                                        |
+| POST   | `/api/sim/conversations/[conversationId]/messages` | Send message (optional: `configOverride`: draft/published) |
+| POST   | `/api/sim/conversations/[conversationId]/reset`    | Reset state and memory                                     |
 
 For turn and agent run debugging, reuse:
 
@@ -711,15 +710,15 @@ vercel --prod
 
 ## Scripts
 
-| Script                    | Description                                                                                             |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `npm run dev`             | Development with Turbo                                                                                  |
-| `npm run build`           | Production build                                                                                        |
-| `npm start`               | Production server                                                                                       |
+| Script                    | Description                                                                                               |
+| ------------------------- | --------------------------------------------------------------------------------------------------------- |
+| `npm run dev`             | Development with Turbo                                                                                    |
+| `npm run build`           | Production build                                                                                          |
+| `npm start`               | Production server                                                                                         |
 | `npm run worker`          | Local worker: processes jobs (debounceTurn, runAgent, sendReply, memoryUpdate, kbReindexMarkdown) in loop |
-| `npm run lint`            | Linter                                                                                                  |
-| `npm run seed-kb`         | Initial KB seed from files in `flows/*/kb/`                                                             |
-| `npm run test-classifier` | AI classifier test (router type `ai`)                                                                   |
+| `npm run lint`            | Linter                                                                                                    |
+| `npm run seed-kb`         | Initial KB seed from files in `flows/*/kb/`                                                               |
+| `npm run test-classifier` | AI classifier test (router type `ai`)                                                                     |
 
 **Migration scripts** (run with `npx tsx`):
 
@@ -732,84 +731,84 @@ vercel --prod
 
 ### Auth
 
-| Method | Route               | Description                                                  |
-| ------ | ------------------- | ------------------------------------------------------------ |
-| POST   | `/api/auth/login`   | Login (body: username, password); sets session cookie        |
-| POST   | `/api/auth/logout`  | Logout; clears cookie                                        |
+| Method | Route              | Description                                           |
+| ------ | ------------------ | ----------------------------------------------------- |
+| POST   | `/api/auth/login`  | Login (body: username, password); sets session cookie |
+| POST   | `/api/auth/logout` | Logout; clears cookie                                 |
 
 ### Dashboard
 
-| Method | Route                      | Description                                                     |
-| ------ | -------------------------- | --------------------------------------------------------------- |
-| GET    | `/api/dashboard/overview`  | System summary (Baileys, MongoDB, sessions); requires auth      |
+| Method | Route                     | Description                                                |
+| ------ | ------------------------- | ---------------------------------------------------------- |
+| GET    | `/api/dashboard/overview` | System summary (Baileys, MongoDB, sessions); requires auth |
 
 ### WhatsApp
 
-| Method | Route                    | Description                |
-| ------ | ------------------------ | -------------------------- |
-| POST   | `/api/whatsapp/webhook`  | Receives messages from Baileys |
-| POST   | `/api/whatsapp/send`     | Sends message via Baileys  |
+| Method | Route                   | Description                    |
+| ------ | ----------------------- | ------------------------------ |
+| POST   | `/api/whatsapp/webhook` | Receives messages from Baileys |
+| POST   | `/api/whatsapp/send`    | Sends message via Baileys      |
 
 ### Conversations
 
-| Method | Route                                                | Description                                                 |
-| ------ | ---------------------------------------------------- | ----------------------------------------------------------- |
-| GET    | `/api/conversations`                                 | List conversations (query: `sessionId`)                   |
-| GET    | `/api/conversations/[whatsappId]/messages`           | Conversation messages                                       |
-| GET    | `/api/conversations/[whatsappId]/turns`              | Turn history (query: `limit`, max. 50)                    |
-| GET    | `/api/conversations/[whatsappId]/responses-enabled`  | Response status                                             |
-| POST   | `/api/conversations/[whatsappId]/responses-enabled`  | Update responses (body: `enabled`, `disabledUntilUTC`)      |
+| Method | Route                                               | Description                                            |
+| ------ | --------------------------------------------------- | ------------------------------------------------------ |
+| GET    | `/api/conversations`                                | List conversations (query: `sessionId`)                |
+| GET    | `/api/conversations/[whatsappId]/messages`          | Conversation messages                                  |
+| GET    | `/api/conversations/[whatsappId]/turns`             | Turn history (query: `limit`, max. 50)                 |
+| GET    | `/api/conversations/[whatsappId]/responses-enabled` | Response status                                        |
+| POST   | `/api/conversations/[whatsappId]/responses-enabled` | Update responses (body: `enabled`, `disabledUntilUTC`) |
 
 ### Turns and Agent Runs (debug)
 
-| Method | Route                      | Description                    |
-| ------ | -------------------------- | ------------------------------ |
-| GET    | `/api/turns/[turnId]`      | Turn detail                    |
-| GET    | `/api/agent-runs/[runId]`  | Agent execution detail         |
+| Method | Route                     | Description            |
+| ------ | ------------------------- | ---------------------- |
+| GET    | `/api/turns/[turnId]`     | Turn detail            |
+| GET    | `/api/agent-runs/[runId]` | Agent execution detail |
 
 ### UI — Flows and Prompts (require auth)
 
-| Method | Route                                                           | Description                                      |
-| ------ | --------------------------------------------------------------- | ------------------------------------------------ |
-| GET    | `/api/ui/sessions/[sessionId]/flow`                             | Get flow (query: `version=draft\|published`)     |
-| PUT    | `/api/ui/sessions/[sessionId]/flow`                             | Update draft                                     |
-| POST   | `/api/ui/sessions/[sessionId]/flow/publish`                     | Publish flow                                     |
-| POST   | `/api/ui/sessions/[sessionId]/flow/validate`                    | Validate without saving                          |
-| GET    | `/api/ui/sessions/[sessionId]/flow/diff`                        | Diff draft vs published                          |
-| GET    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`          | Get prompt                                       |
-| PUT    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`          | Update prompt draft                              |
-| POST   | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt/publish` | Publish prompt                                   |
-| GET    | `/api/ui/sessions/[sessionId]/runtime-config`                   | Get configMode                                   |
-| PUT    | `/api/ui/sessions/[sessionId]/runtime-config`                   | Update configMode                                |
+| Method | Route                                                          | Description                                  |
+| ------ | -------------------------------------------------------------- | -------------------------------------------- |
+| GET    | `/api/ui/sessions/[sessionId]/flow`                            | Get flow (query: `version=draft\|published`) |
+| PUT    | `/api/ui/sessions/[sessionId]/flow`                            | Update draft                                 |
+| POST   | `/api/ui/sessions/[sessionId]/flow/publish`                    | Publish flow                                 |
+| POST   | `/api/ui/sessions/[sessionId]/flow/validate`                   | Validate without saving                      |
+| GET    | `/api/ui/sessions/[sessionId]/flow/diff`                       | Diff draft vs published                      |
+| GET    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`         | Get prompt                                   |
+| PUT    | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt`         | Update prompt draft                          |
+| POST   | `/api/ui/sessions/[sessionId]/agents/[agentId]/prompt/publish` | Publish prompt                               |
+| GET    | `/api/ui/sessions/[sessionId]/runtime-config`                  | Get configMode                               |
+| PUT    | `/api/ui/sessions/[sessionId]/runtime-config`                  | Update configMode                            |
 
 ### Knowledge Base
 
-| Method | Route                                         | Description                                                    |
-| ------ | --------------------------------------------- | -------------------------------------------------------------- |
-| GET    | `/api/kb/md`                                  | List documents (query: `sessionId`, `status`)                  |
-| POST   | `/api/kb/md`                                  | Create document                                                |
-| GET    | `/api/kb/md/[docId]`                          | Get document                                                   |
-| PUT    | `/api/kb/md/[docId]`                          | Update document                                                |
-| DELETE | `/api/kb/md/[docId]`                          | Archive document                                               |
-| GET    | `/api/kb/tables`                              | List tables (query: `sessionId`)                             |
-| GET    | `/api/kb/tables/[sessionId]/[tableKey]/rows`  | Rows (query: `query`, `limit`)                               |
-| POST   | `/api/kb/tables/[sessionId]/[tableKey]/sync`  | Sync from n8n (header: `Authorization: Bearer KB_SYNC_TOKEN`)  |
+| Method | Route                                        | Description                                                   |
+| ------ | -------------------------------------------- | ------------------------------------------------------------- |
+| GET    | `/api/kb/md`                                 | List documents (query: `sessionId`, `status`)                 |
+| POST   | `/api/kb/md`                                 | Create document                                               |
+| GET    | `/api/kb/md/[docId]`                         | Get document                                                  |
+| PUT    | `/api/kb/md/[docId]`                         | Update document                                               |
+| DELETE | `/api/kb/md/[docId]`                         | Archive document                                              |
+| GET    | `/api/kb/tables`                             | List tables (query: `sessionId`)                              |
+| GET    | `/api/kb/tables/[sessionId]/[tableKey]/rows` | Rows (query: `query`, `limit`)                                |
+| POST   | `/api/kb/tables/[sessionId]/[tableKey]/sync` | Sync from n8n (header: `Authorization: Bearer KB_SYNC_TOKEN`) |
 
 ### Simulator
 
-| Method | Route                                               | Description                |
-| ------ | --------------------------------------------------- | -------------------------- |
-| GET    | `/api/sim/sessions/[sessionId]/conversations`       | List conversations         |
-| POST   | `/api/sim/sessions/[sessionId]/conversations`       | Create (body: `testUserId`) |
-| GET    | `/api/sim/conversations/[conversationId]/messages`    | History                    |
-| POST   | `/api/sim/conversations/[conversationId]/messages`    | Send message               |
-| POST   | `/api/sim/conversations/[conversationId]/reset`     | Reset conversation         |
+| Method | Route                                              | Description                 |
+| ------ | -------------------------------------------------- | --------------------------- |
+| GET    | `/api/sim/sessions/[sessionId]/conversations`      | List conversations          |
+| POST   | `/api/sim/sessions/[sessionId]/conversations`      | Create (body: `testUserId`) |
+| GET    | `/api/sim/conversations/[conversationId]/messages` | History                     |
+| POST   | `/api/sim/conversations/[conversationId]/messages` | Send message                |
+| POST   | `/api/sim/conversations/[conversationId]/reset`    | Reset conversation          |
 
 ### Cron
 
-| Method | Route             | Description                                                         |
-| ------ | ----------------- | ------------------------------------------------------------------- |
-| GET    | `/api/cron/jobs`  | Process up to 10 jobs (header: `Authorization: Bearer CRON_SECRET`) |
+| Method | Route            | Description                                                         |
+| ------ | ---------------- | ------------------------------------------------------------------- |
+| GET    | `/api/cron/jobs` | Process up to 10 jobs (header: `Authorization: Bearer CRON_SECRET`) |
 
 ---
 
@@ -865,25 +864,25 @@ whatsapp-bot-v2/
 
 **17 collections** in the database configured by `MONGODB_DB_NAME`.
 
-| Group                 | Collection              | Usage                                                              |
-| --------------------- | ---------------------- | ---------------------------------------------------------------- |
-| **Core messaging**    | `messages`             | Incoming/outgoing messages (WhatsApp + Simulator)                  |
-|                       | `turns`                | Message consolidation into turns                                   |
-|                       | `agentRuns`            | Agent execution traces                                             |
-| **Memory and state**  | `memory`               | Facts + recap per conversation                                     |
-|                       | `conversationState`    | FSM state + custom data per conversation                         |
-| **Configuration**     | `responsesEnabled`     | Automatic response control + cooldown                            |
-|                       | `flowDocuments`        | Flows (draft/published) per session                                |
-|                       | `agentPromptDocuments` | Prompts per agent/session                                          |
-|                       | `sessionRuntimeConfig` | Resolution mode (auto / force_draft / force_published)           |
-|                       | `sessions`             | Session metadata (name, description)                               |
-| **Knowledge Base v2** | `kbMdDocs`             | Markdown documents                                                 |
-|                       | `kbMdChunks`           | Document chunks                                                    |
-|                       | `kbTables`             | Table definitions                                                |
-|                       | `kbRows`               | Table rows                                                       |
-|                       | `kbSyncRuns`           | Sync history                                                     |
-| **System**            | `jobs`                 | Async job queue (debounceTurn, runAgent, sendReply, etc.)        |
-|                       | `locks`                | Distributed locks to prevent race conditions                       |
+| Group                 | Collection             | Usage                                                     |
+| --------------------- | ---------------------- | --------------------------------------------------------- |
+| **Core messaging**    | `messages`             | Incoming/outgoing messages (WhatsApp + Simulator)         |
+|                       | `turns`                | Message consolidation into turns                          |
+|                       | `agentRuns`            | Agent execution traces                                    |
+| **Memory and state**  | `memory`               | Facts + recap per conversation                            |
+|                       | `conversationState`    | FSM state + custom data per conversation                  |
+| **Configuration**     | `responsesEnabled`     | Automatic response control + cooldown                     |
+|                       | `flowDocuments`        | Flows (draft/published) per session                       |
+|                       | `agentPromptDocuments` | Prompts per agent/session                                 |
+|                       | `sessionRuntimeConfig` | Resolution mode (auto / force_draft / force_published)    |
+|                       | `sessions`             | Session metadata (name, description)                      |
+| **Knowledge Base v2** | `kbMdDocs`             | Markdown documents                                        |
+|                       | `kbMdChunks`           | Document chunks                                           |
+|                       | `kbTables`             | Table definitions                                         |
+|                       | `kbRows`               | Table rows                                                |
+|                       | `kbSyncRuns`           | Sync history                                              |
+| **System**            | `jobs`                 | Async job queue (debounceTurn, runAgent, sendReply, etc.) |
+|                       | `locks`                | Distributed locks to prevent race conditions              |
 
 ---
 
@@ -937,21 +936,21 @@ whatsapp-bot-v2/
 
 ### Required
 
-| Variable          | Description             |
-| ----------------- | ----------------------- |
-| `MONGODB_URI`     | MongoDB connection      |
-| `MONGODB_DB_NAME` | Database name           |
-| `OPENAI_API_KEY`  | OpenAI API key          |
+| Variable          | Description        |
+| ----------------- | ------------------ |
+| `MONGODB_URI`     | MongoDB connection |
+| `MONGODB_DB_NAME` | Database name      |
+| `OPENAI_API_KEY`  | OpenAI API key     |
 
 ### Optional
 
-| Variable          | Description                                                                   | Default |
-| ----------------- | ----------------------------------------------------------------------------- | ------- |
-| `BAILEYS_API_URL` | Baileys API URL                                                               | -       |
-| `BAILEYS_API_KEY` | Baileys auth                                                                  | -       |
-| `CRON_SECRET`     | Vercel Cron auth                                                              | -       |
-| `LOGIN_USERNAME`  | Admin user                                                                    | -       |
-| `LOGIN_PASSWORD`  | Admin password                                                                | -       |
+| Variable          | Description                                                                    | Default |
+| ----------------- | ------------------------------------------------------------------------------ | ------- |
+| `BAILEYS_API_URL` | Baileys API URL                                                                | -       |
+| `BAILEYS_API_KEY` | Baileys auth                                                                   | -       |
+| `CRON_SECRET`     | Vercel Cron auth                                                               | -       |
+| `LOGIN_USERNAME`  | Admin user                                                                     | -       |
+| `LOGIN_PASSWORD`  | Admin password                                                                 | -       |
 | `KB_SYNC_TOKEN`   | Bearer token for `POST /api/kb/tables/[sessionId]/[tableKey]/sync` (e.g., n8n) | -       |
 
 ---

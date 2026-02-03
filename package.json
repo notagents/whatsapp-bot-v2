@@ -12,6 +12,7 @@
     "lint": "eslint",
     "worker": "tsx scripts/worker.ts",
     "seed-kb": "tsx scripts/seed-kb.ts",
+    "seed-synonyms": "tsx scripts/seed-synonyms-vaporizadores.ts",
     "test-classifier": "tsx scripts/test-classifier.ts"
   },
   "dependencies": {

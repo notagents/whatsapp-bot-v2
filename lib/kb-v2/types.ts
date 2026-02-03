@@ -53,12 +53,26 @@ export type KbRow = {
     name?: string;
     nameTokens?: string[];
     category?: string;
+    aliases?: string[];
   };
   updatedAt: number;
   source?: {
     provider: "n8n" | "manual" | "import";
     batchId?: string;
   };
+};
+
+export type KbSynonymGroup = {
+  terms: string[];
+  category?: string;
+  enabled: boolean;
+};
+
+export type KbSynonymsConfig = {
+  _id?: ObjectId;
+  sessionId: string;
+  synonymGroups: KbSynonymGroup[];
+  updatedAt: number;
 };
 
 export type KbSyncRun = {

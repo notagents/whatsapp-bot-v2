@@ -15,6 +15,7 @@ import {
   KB_TABLES_COLLECTION,
   KB_ROWS_COLLECTION,
   KB_SYNC_RUNS_COLLECTION,
+  KB_SYNONYMS_CONFIG_COLLECTION,
   FLOW_DOCUMENTS_COLLECTION,
   AGENT_PROMPT_DOCUMENTS_COLLECTION,
   SESSION_RUNTIME_CONFIG_COLLECTION,
@@ -26,6 +27,7 @@ import type {
   KbTable,
   KbRow,
   KbSyncRun,
+  KbSynonymsConfig,
 } from "./kb-v2/types";
 import type { FlowConfig } from "./flows/types";
 import type { ContextSchema } from "./context-schema";
@@ -420,6 +422,10 @@ export async function ensureIndexes(): Promise<void> {
     { unique: true }
   );
   await kbSyncRuns.createIndex({ status: 1, receivedAt: -1 });
+  const kbSynonymsConfig = db.collection<KbSynonymsConfig>(
+    KB_SYNONYMS_CONFIG_COLLECTION
+  );
+  await kbSynonymsConfig.createIndex({ sessionId: 1 }, { unique: true });
   const flowDocuments = db.collection<FlowDocument>(FLOW_DOCUMENTS_COLLECTION);
   await flowDocuments.createIndex(
     { sessionId: 1, type: 1, name: 1, status: 1 },

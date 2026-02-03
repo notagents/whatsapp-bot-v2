@@ -1,6 +1,7 @@
 import { getDb } from "@/lib/db";
 import { KB_ROWS_COLLECTION } from "@/lib/db";
 import type { KbRow } from "@/lib/kb-v2/types";
+import { expandQueryWithSynonyms } from "./synonyms";
 
 export type TableLookupParams = {
   sessionId: string;
@@ -38,19 +39,25 @@ function scoreRowForQuery(
   query: string,
   numericHints: string[]
 ): number {
-  const name = [
-    (row.search as { name?: string })?.name,
-    (row.data as { name?: string })?.name,
-  ]
+  const search = row.search as
+    | {
+        name?: string;
+        aliases?: string[];
+      }
+    | undefined;
+  const name = [search?.name, (row.data as { name?: string })?.name]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  const aliases = (search?.aliases ?? []).join(" ").toLowerCase();
   const q = query.toLowerCase().trim();
   let score = 0;
   if (name.includes(q)) score += 100;
+  if (aliases && q.length > 1 && aliases.includes(q)) score += 80;
   const qWords = q.split(/\s+/).filter(Boolean);
   for (const w of qWords) {
     if (w.length > 1 && name.includes(w)) score += 20;
+    if (aliases && aliases.includes(w)) score += 15;
   }
   for (const hint of numericHints) {
     if (hint && name.includes(hint)) score += 50;
@@ -63,6 +70,7 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
   if (!query?.trim()) {
     return queryRows({ sessionId, tableKey, limit, filter });
   }
+  const searchQuery = await expandQueryWithSynonyms(query, sessionId, tableKey);
   const db = await getDb();
   const col = db.collection<KbRow>(KB_ROWS_COLLECTION);
   const cap = Math.min(limit * 2, 50);
@@ -75,7 +83,7 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
     const cursor = col
       .find({
         ...baseMatch,
-        $text: { $search: query },
+        $text: { $search: searchQuery },
       })
       .project({
         sessionId: 1,
@@ -88,19 +96,32 @@ export async function lookupRows(params: TableLookupParams): Promise<KbRow[]> {
       .limit(cap);
     rows = (await cursor.toArray()) as KbRow[];
   } catch {
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const terms = searchQuery
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean)
+      .map(escapeRegex);
+    const regexQuery = terms.join("|");
+    const orConditions: Record<string, unknown>[] = [
+      { "search.name": { $regex: query.trim(), $options: "i" } },
+      { "data.name": { $regex: query.trim(), $options: "i" } },
+    ];
+    if (regexQuery) {
+      orConditions.push({
+        "search.aliases": { $regex: new RegExp(regexQuery, "i") },
+      });
+    }
     const cursor = col
       .find({
         ...baseMatch,
-        $or: [
-          { "search.name": { $regex: query.trim(), $options: "i" } },
-          { "data.name": { $regex: query.trim(), $options: "i" } },
-        ],
+        $or: orConditions,
       })
       .limit(cap);
     rows = (await cursor.toArray()) as KbRow[];
   }
   const numericHints = extractNumericHints(query);
-  if (numericHints.length > 0 || query.includes(" ")) {
+  if (rows.length > 1) {
     rows = [...rows].sort((a, b) => {
       const sa = scoreRowForQuery(a, query, numericHints);
       const sb = scoreRowForQuery(b, query, numericHints);

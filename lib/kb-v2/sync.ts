@@ -57,6 +57,7 @@ function buildUpsertOps(
 ): BulkWriteOp[] {
   const nameField = "name";
   const categoryField = "category";
+  const aliasesField = "aliases";
   return rows.map((row) => {
     const pk = String(row[primaryKey]);
     const data = { ...row } as Record<string, unknown>;
@@ -67,6 +68,11 @@ function buildUpsertOps(
     const categoryVal = data[categoryField];
     const searchCategory =
       categoryVal != null ? String(categoryVal).trim() : undefined;
+    const aliasesRaw = data[aliasesField];
+    const searchAliases =
+      Array.isArray(aliasesRaw) && aliasesRaw.length > 0
+        ? [...new Set(aliasesRaw.map((a) => normalizeSearchName(String(a))))]
+        : undefined;
 
     const doc: Omit<KbRow, "_id"> = {
       sessionId,
@@ -77,6 +83,8 @@ function buildUpsertOps(
         ...(searchName && { name: searchName }),
         ...(nameTokens && nameTokens.length > 0 && { nameTokens }),
         ...(searchCategory && { category: searchCategory }),
+        ...(searchAliases &&
+          searchAliases.length > 0 && { aliases: searchAliases }),
       },
       updatedAt: now,
       source: { provider: "n8n", batchId },

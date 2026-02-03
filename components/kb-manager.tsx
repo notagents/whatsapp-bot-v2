@@ -26,7 +26,19 @@ type KbMdDoc = {
   version: number;
 };
 
-type Tab = "md" | "tables";
+type Tab = "md" | "tables" | "synonyms";
+
+type SynonymGroup = {
+  terms: string[];
+  category?: string;
+  enabled: boolean;
+};
+
+type SynonymsConfig = {
+  sessionId: string;
+  synonymGroups: SynonymGroup[];
+  updatedAt: number;
+};
 
 type TableInfo = { tableKey: string; rowCount: number };
 
@@ -54,6 +66,17 @@ export function KbManager({ sessionId }: { sessionId: string }) {
   const [selectedTableKey, setSelectedTableKey] = useState<string | null>(null);
   const [tableRows, setTableRows] = useState<TableRow[]>([]);
   const [rowsLoading, setRowsLoading] = useState(false);
+  const [synonymsConfig, setSynonymsConfig] = useState<SynonymsConfig | null>(
+    null
+  );
+  const [synonymsLoading, setSynonymsLoading] = useState(false);
+  const [synonymsError, setSynonymsError] = useState<string | null>(null);
+  const [addGroupOpen, setAddGroupOpen] = useState(false);
+  const [newGroupTerms, setNewGroupTerms] = useState("");
+  const [newGroupCategory, setNewGroupCategory] = useState("");
+  const [newGroupEnabled, setNewGroupEnabled] = useState(true);
+  const [savingGroup, setSavingGroup] = useState(false);
+  const [deletingIndex, setDeletingIndex] = useState<number | null>(null);
 
   const fetchDocs = useCallback(async () => {
     setLoading(true);
@@ -88,6 +111,85 @@ export function KbManager({ sessionId }: { sessionId: string }) {
   useEffect(() => {
     if (tab === "tables") fetchTables();
   }, [tab, fetchTables]);
+
+  const fetchSynonyms = useCallback(async () => {
+    setSynonymsLoading(true);
+    setSynonymsError(null);
+    try {
+      const res = await fetch(
+        `/api/ui/kb/${encodeURIComponent(sessionId)}/synonyms`,
+        { credentials: "include" }
+      );
+      const data = await res.json();
+      if (res.ok) setSynonymsConfig(data.data ?? null);
+      else {
+        if (res.status === 401)
+          setSynonymsError("Inicia sesion para gestionar sinonimos.");
+        else setSynonymsError(data?.error ?? "Error al cargar sinonimos.");
+      }
+    } finally {
+      setSynonymsLoading(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    if (tab === "synonyms") fetchSynonyms();
+  }, [tab, fetchSynonyms]);
+
+  const handleAddGroup = async () => {
+    const terms = newGroupTerms
+      .split(/[\n,]/)
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (terms.length === 0) return;
+    setSavingGroup(true);
+    try {
+      const res = await fetch(
+        `/api/ui/kb/${encodeURIComponent(sessionId)}/synonyms`,
+        {
+          method: "PUT",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            terms,
+            category: newGroupCategory.trim() || undefined,
+            enabled: newGroupEnabled,
+          }),
+        }
+      );
+      if (res.ok) {
+        setAddGroupOpen(false);
+        setNewGroupTerms("");
+        setNewGroupCategory("");
+        setNewGroupEnabled(true);
+        await fetchSynonyms();
+      } else {
+        const data = await res.json();
+        alert(data?.error ?? "Error al agregar grupo");
+      }
+    } finally {
+      setSavingGroup(false);
+    }
+  };
+
+  const handleDeleteGroup = async (index: number) => {
+    setDeletingIndex(index);
+    try {
+      const res = await fetch(
+        `/api/ui/kb/${encodeURIComponent(
+          sessionId
+        )}/synonyms?groupIndex=${index}`,
+        { method: "DELETE", credentials: "include" }
+      );
+      if (res.ok) await fetchSynonyms();
+      else {
+        const data = await res.json();
+        alert(data?.error ?? "Error al eliminar grupo");
+      }
+    } finally {
+      setDeletingIndex(null);
+    }
+  };
 
   const openTable = useCallback(
     async (tableKey: string) => {
@@ -197,6 +299,17 @@ export function KbManager({ sessionId }: { sessionId: string }) {
           }`}
         >
           Tables KB
+        </button>
+        <button
+          type="button"
+          onClick={() => setTab("synonyms")}
+          className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px ${
+            tab === "synonyms"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Sinonimos
         </button>
       </div>
 
@@ -426,6 +539,153 @@ export function KbManager({ sessionId }: { sessionId: string }) {
                 ))
               )}
             </div>
+          )}
+        </div>
+      )}
+
+      {tab === "synonyms" && (
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Grupos de sinonimos para expansion de busqueda (ej. vaporizador,
+            vapo, v4po, v4porizador). Requiere sesion iniciada.
+          </p>
+          {synonymsLoading ? (
+            <p className="text-sm text-muted-foreground">
+              Cargando sinonimos...
+            </p>
+          ) : synonymsError ? (
+            <Card className="p-6 border-dashed">
+              <p className="text-sm text-muted-foreground mb-2">
+                {synonymsError}
+              </p>
+              <Link href="/login">
+                <Button size="sm">Ir a iniciar sesion</Button>
+              </Link>
+            </Card>
+          ) : (
+            <>
+              <div className="flex justify-between items-center">
+                <span className="text-sm text-muted-foreground">
+                  {synonymsConfig?.synonymGroups?.length ?? 0} grupos
+                </span>
+                <Dialog open={addGroupOpen} onOpenChange={setAddGroupOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">Agregar grupo</Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Nuevo grupo de sinonimos</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                      <div className="grid gap-2">
+                        <Label htmlFor="group-terms">
+                          Terminos (uno por linea o separados por coma)
+                        </Label>
+                        <textarea
+                          id="group-terms"
+                          className="min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          value={newGroupTerms}
+                          onChange={(e) => setNewGroupTerms(e.target.value)}
+                          placeholder="vaporizador, vapo, v4po, v4porizador"
+                        />
+                      </div>
+                      <div className="grid gap-2">
+                        <Label htmlFor="group-category">
+                          Categoria (opcional, ej. products)
+                        </Label>
+                        <Input
+                          id="group-category"
+                          value={newGroupCategory}
+                          onChange={(e) => setNewGroupCategory(e.target.value)}
+                          placeholder="products"
+                        />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="group-enabled"
+                          checked={newGroupEnabled}
+                          onChange={(e) => setNewGroupEnabled(e.target.checked)}
+                          className="rounded border-input"
+                        />
+                        <Label htmlFor="group-enabled">Activo</Label>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button
+                        variant="outline"
+                        onClick={() => setAddGroupOpen(false)}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        onClick={handleAddGroup}
+                        disabled={
+                          savingGroup ||
+                          !newGroupTerms
+                            .split(/[\n,]/)
+                            .map((s) => s.trim())
+                            .filter(Boolean).length
+                        }
+                      >
+                        {savingGroup ? "Guardando..." : "Agregar"}
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              {!synonymsConfig?.synonymGroups?.length ? (
+                <Card className="p-8 border-dashed text-center">
+                  <p className="text-muted-foreground mb-4">
+                    No hay grupos de sinonimos. Agrega uno para que busquedas
+                    como &quot;vaporizador&quot; coincidan con productos
+                    guardados como &quot;v4po&quot; o &quot;v4porizador&quot;.
+                  </p>
+                  <Button onClick={() => setAddGroupOpen(true)}>
+                    Agregar primer grupo
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-2">
+                  {synonymsConfig.synonymGroups.map((group, i) => (
+                    <Card key={i} className="p-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap gap-1.5 mb-1">
+                            {group.terms.map((t, j) => (
+                              <span
+                                key={j}
+                                className="inline-flex items-center rounded-md bg-muted px-2 py-0.5 text-xs font-medium"
+                              >
+                                {t}
+                              </span>
+                            ))}
+                          </div>
+                          {group.category && (
+                            <span className="text-xs text-muted-foreground">
+                              Categoria: {group.category}
+                            </span>
+                          )}
+                          {!group.enabled && (
+                            <span className="ml-2 text-xs text-muted-foreground">
+                              (inactivo)
+                            </span>
+                          )}
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDeleteGroup(i)}
+                          disabled={deletingIndex !== null}
+                        >
+                          {deletingIndex === i ? "Eliminando..." : "Eliminar"}
+                        </Button>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
